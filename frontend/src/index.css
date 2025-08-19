@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+.bgimg{
+background-image: url(../public/hero1.png);
+background-repeat: no-repeat;
+background-size: cover;
+background-position: center;
+}
+
