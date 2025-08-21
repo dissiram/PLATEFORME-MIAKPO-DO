@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../services/firebase";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { motion } from "framer-motion";
+import Navbar from "../../components/Navbar";
 
 const Register = () => {
-  const [step, setStep] = useState(1); // Étape 1 = choisir rôle, Étape 2 = infos
+  const [step, setStep] = useState(1);
   const [role, setRole] = useState("");
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleNextStep = () => {
-    if (!role) {
-      setError("Veuillez choisir un rôle");
-      return;
-    }
+    if (!role) return setError("Veuillez choisir un rôle");
     setError("");
     setStep(2);
   };
@@ -27,109 +25,136 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!name || !email || !password) {
+    setIsLoading(true);
+
+    if (!username || !email || !password) {
       setError("Tous les champs sont obligatoires");
+      setIsLoading(false);
       return;
     }
+
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Ici stocker le role et le nom dans Firestore 
-      // console.log("Utilisateur créé :", userCredential.user);
-      navigate("/login"); // redirige vers login après inscription
+      const res = await axios.post("http://localhost:5000/api/auth/register", {
+        username,
+        email,
+        password,
+        role
+      });
+
+      navigate("/login", {
+        state: { registrationSuccess: true, email }
+      });
     } catch (err) {
-      console.error(err);
-      setError("Erreur lors de l'inscription");
+      console.error("Erreur d'inscription:", err);
+      const msg =
+        err.response?.data?.error ||
+        "Une erreur est survenue. Veuillez réessayer.";
+      setError(msg);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-     <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden">
+      <Navbar />
+      {/* Décor */}
       <div className="absolute -top-40 -right-32 w-96 h-96 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full opacity-20 blur-3xl" />
       <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-gradient-to-tr from-teal-400 to-green-500 rounded-full opacity-20 blur-3xl" />
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-8">
-      <div className="w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-8 text-center">Inscription</h1>
 
-        {step === 1 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white shadow-md rounded-lg px-8 pt-8 pb-6 space-y-6"
-          >
-            <p className="text-center font-medium">Choisissez votre rôle</p>
-            <div className="flex justify-around">
-              <Button
-                className={role === "user" ? "bg-blue-600 text-white" : ""}
-                onClick={() => setRole("user")}
-              >
-                Utilisateur
-              </Button>
-              <Button
-                className={role === "announcer" ? "bg-blue-600 text-white" : ""}
-                onClick={() => setRole("announcer")}
-              >
-                Annonceur
-              </Button>
-            </div>
-            {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-            <div className="flex justify-center">
-              <Button onClick={handleNextStep}>Suivant</Button>
-            </div>
-          </motion.div>
-        )}
+      <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 py-8">
+        <div className="w-full max-w-md px-4">
+          <h1 className="text-3xl font-bold mb-8 text-center text-gray-900">
+            {step === 1 ? "Choisissez votre profil" : "Créez votre compte"}
+          </h1>
 
-        {step === 2 && (
-          <motion.form
-            onSubmit={handleSubmit}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white shadow-md rounded-lg px-8 pt-8 pb-6 space-y-6"
-          >
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Nom</label>
-              <Input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Nom complet"
-                className="w-full bg-white"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Adresse email</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full bg-white"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700">Mot de passe</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Mot de passe"
-                className="w-full bg-white"
-                required
-              />
-            </div>
-            {error && <div className="text-red-600 text-sm text-center">{error}</div>}
-            <div className="flex justify-center space-x-4">
-              <Button type="button" onClick={() => setStep(1)}>Précédent</Button>
-              <Button type="submit" className="bg-blue-600 text-white">S'inscrire</Button>
-            </div>
-          </motion.form>
-        )}
-      </div>
+          {step === 1 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white shadow-md rounded-lg px-8 pt-8 pb-6 space-y-6"
+            >
+              <p className="text-center font-medium mb-4">Choisissez votre rôle</p>
+              <div className="grid grid-cols-2 gap-4">
+                <Button
+                  type="button"
+                  variant={role === "user" ? "default" : "outline"}
+                  onClick={() => setRole("user")}
+                >
+                  Utilisateur
+                </Button>
+                <Button
+                  type="button"
+                  variant={role === "announcer" ? "default" : "outline"}
+                  onClick={() => setRole("announcer")}
+                >
+                  Annonceur
+                </Button>
+              </div>
+              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+              <div className="flex justify-center pt-4">
+                <Button onClick={handleNextStep} disabled={!role}>
+                  Suivant
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {step === 2 && (
+            <motion.form
+              onSubmit={handleSubmit}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white shadow-md rounded-lg px-8 pt-8 pb-6 space-y-6"
+              noValidate
+            >
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label>Nom complet *</label>
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Email *</label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label>Mot de passe *</label>
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-gray-500">Minimum 6 caractères</p>
+                </div>
+              </div>
+
+              {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+
+              <div className="flex justify-between pt-4">
+                <Button type="button" variant="outline" onClick={() => setStep(1)}>
+                  Précédent
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? "Inscription..." : "S'inscrire"}
+                </Button>
+              </div>
+            </motion.form>
+          )}
+        </div>
+      </main>
     </div>
-  </div>
   );
 };
 

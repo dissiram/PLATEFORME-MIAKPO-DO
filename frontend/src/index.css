@@ -7,3 +7,6 @@ background-size: cover;
 background-position: center;
 }
 
+/* import css pour react-grid-layout / react-resizable */
+@import "~react-grid-layout/css/styles.css";
+@import "~react-resizable/css/styles.css";

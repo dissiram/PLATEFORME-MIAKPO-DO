@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "../services/firebase";
+// contexts/AuthContext.jsx
+import { createContext, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -9,15 +8,27 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    // Récupère les infos de l'utilisateur depuis le localStorage
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("userRole");
+
+    if (token && role) {
+      setUser({ token, role });
+    } else {
+      setUser(null);
+    }
+
+    setLoading(false);
   }, []);
 
+  const logout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userRole");
+    setUser(null);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading }}>
+    <AuthContext.Provider value={{ user, loading, setUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
