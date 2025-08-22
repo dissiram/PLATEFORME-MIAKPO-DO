@@ -1,8 +1,17 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Bars3Icon, XMarkIcon, BriefcaseIcon,ReceiptPercentIcon,ClipboardDocumentListIcon, UserIcon, StarIcon, ClockIcon, BellIcon } from "@heroicons/react/24/outline";
+import {
+  Bars3Icon,
+  XMarkIcon,
+  BriefcaseIcon,
+  ReceiptPercentIcon,
+  ClipboardDocumentListIcon,
+  UserIcon,
+  StarIcon,
+  ClockIcon,
+  BellIcon
+} from "@heroicons/react/24/outline";
 import logo from "../assets/logo_icon2.svg";
-
 
 const UserSidebar = ({ role }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,16 +28,18 @@ const UserSidebar = ({ role }) => {
       { name: "Mes Candidatures", path: "/dashboard/user/candidatures", icon: ClipboardDocumentListIcon },
       { name: "Notifications", path: "/dashboard/user/notifications", icon: BellIcon },
     ];
-  } else if (role === "annoucer") {
+  } else if (role === "announcer") {  // ✅ correction ici
     links = [
-      { name: "Mes annonces", path: "/advertiser", icon: BriefcaseIcon },
-      { name: "Créer une annonce", path: "/advertiser/create", icon: UserIcon },
+      { name: "Tableau de bord", path: "/dashboard/announcer", icon: BriefcaseIcon },
+      { name: "Créer une offre", path: "/dashboard/announcer/create", icon: ClipboardDocumentListIcon },
+      { name: "Mes annonces", path: "/dashboard/announcer/offers", icon: UserIcon },
+      { name: "Candidatures reçues", path: "/dashboard/announcer/candidatures", icon: ReceiptPercentIcon },
     ];
   } else if (role === "admin") {
     links = [
-      { name: "Gestion utilisateurs", path: "/admin", icon: UserIcon },
-      { name: "Modération annonces", path: "/admin/moderation", icon: StarIcon },
-      { name: "Statistiques", path: "/admin/stats", icon: ClockIcon },
+      { name: "Gestion utilisateurs", path: "/dashboard/admin", icon: UserIcon },
+      { name: "Modération annonces", path: "/dashboard/admin/moderation", icon: StarIcon },
+      { name: "Statistiques", path: "/dashboard/admin/stats", icon: ClockIcon },
     ];
   }
 
@@ -70,7 +81,7 @@ const UserSidebar = ({ role }) => {
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
-                  <Icon className="h-6 w-6"  />
+                  <Icon className="h-6 w-6" />
                 </Link>
                 {/* Tooltip */}
                 <div className="absolute left-14 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">

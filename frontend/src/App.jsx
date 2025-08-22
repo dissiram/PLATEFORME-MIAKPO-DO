@@ -1,14 +1,16 @@
+// App.jsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 // Pages publiques
-import Home from "./pages/public/home";
+import Home from "./pages/public/Home";
 import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
-import NotFound from "./pages/public/notFound";
+import NotFound from "./pages/public/NotFound";
 
-// Layout utilisateur
+// Layouts
 import UserLayout from "./layout/UserLayout";
+import AnnouncerLayout from "./layout/AnnouncerLayout";
 
 // Pages utilisateurs
 import UserDashboard from "./pages/UserDashboard/UserDashboard";
@@ -16,10 +18,15 @@ import Portfolio from "./pages/UserDashboard/Portfolio";
 import Matches from "./pages/UserDashboard/Matches";
 import Favorites from "./pages/UserDashboard/Favorites";
 import Notifications from "./pages/UserDashboard/Notifications";
-import Candidatures from "./pages/UserDashboard/Candidatures";
+import UserCandidatures from "./pages/UserDashboard/Candidatures";
 
-// Pages autres rôles
+// Pages annonceurs
 import AnnouncerDashboard from "./pages/AnnouncerDashboard/AnnouncerDashboard";
+import CreateOffer from "./pages/AnnouncerDashboard/CreateOffer";
+import MyOffers from "./pages/AnnouncerDashboard/MyOffers";
+import AnnouncerCandidatures from "./pages/AnnouncerDashboard/Candidatures";
+
+// Page admin
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
 
 // Route protégée
@@ -45,7 +52,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="*" element={<NotFound />} />
 
-          {/* Routes utilisateur avec layout + sidebar */}
+          {/* Routes utilisateurs avec layout + sidebar */}
           <Route
             path="/dashboard/user"
             element={
@@ -54,26 +61,38 @@ function App() {
               </PrivateRoute>
             }
           >
-            <Route index element={<UserDashboard />} /> {/* /dashboard/user */}
+            <Route index element={<UserDashboard />} />
             <Route path="portfolio" element={<Portfolio />} />
             <Route path="matches" element={<Matches />} />
             <Route path="favorites" element={<Favorites />} />
-            <Route path="candidatures" element={<Candidatures />} />
+            <Route path="candidatures" element={<UserCandidatures />} />
             <Route path="notifications" element={<Notifications />} />
           </Route>
 
-          {/* Routes annonceur */}
+          {/* Routes annonceurs avec layout + sidebar */}
           <Route
             path="/dashboard/announcer"
             element={
               <PrivateRoute role="announcer">
-                <AnnouncerDashboard />
+                <AnnouncerLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<AnnouncerDashboard />} />
+            <Route path="create" element={<CreateOffer />} />
+            <Route path="offers" element={<MyOffers />} />
+            <Route path="candidatures" element={<AnnouncerCandidatures />} />
+          </Route>
+
+          {/* Route admin */}
+          <Route
+            path="/dashboard/admin"
+            element={
+              <PrivateRoute role="admin">
+                <AdminDashboard />
               </PrivateRoute>
             }
           />
-
-          {/* Route admin */}
-          <Route path="/dashboard/admin" element={<AdminDashboard />} />
         </Routes>
       </Router>
     </AuthProvider>
