@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { Button } from './ui/button';
 import { Link, useNavigate } from 'react-router-dom';
-import logo from '../assets/logo.svg';
+import logo from '../assets/newlogo2.svg';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
-  const { user, logout } = useAuth(); // logout depuis AuthContext
+  const { user, loading, logout } = useAuth(); // récupère user et logout
   const navigate = useNavigate();
 
-  // Déconnexion
+  // Empêche le rendu tant que le contexte charge l'utilisateur
+  if (loading) return null;
+
   const handleLogout = () => {
-    logout(); // fonction du AuthContext pour supprimer le token
+    logout(); // supprime token et role + met user à null
     navigate("/login");
   };
 
-  // Redirection vers le dashboard selon le rôle
   const handleDashboardRedirect = () => {
     if (!user) return;
 
@@ -36,14 +37,21 @@ export default function Navbar() {
 
   const MenuLinks = () => (
     <>
-      <a href="/" className="text-gray-900 hover:text-blue-900">Espace Candidats</a>
-      <a href="/" className="text-gray-900 hover:text-blue-900">Centre d'aide</a>
+      <Link to="/" className="text-gray-900 hover:text-blue-900">Espace Candidats</Link>
+      <Link to="/" className="text-gray-900 hover:text-blue-900">Centre d'aide</Link>
+
       {user ? (
         <>
-          <Button onClick={handleDashboardRedirect} className="text-blue-800 hover:text-blue-900 bg-transparent">
+          <Button
+            onClick={handleDashboardRedirect}
+            className="text-blue-800 hover:text-blue-900 bg-transparent"
+          >
             Mon Tableau de bord
           </Button>
-          <Button onClick={handleLogout} className="bg-blue-600 text-white px-6 hover:bg-red-800">
+          <Button
+            onClick={handleLogout}
+            className="bg-blue-600 text-white px-6 hover:bg-red-800"
+          >
             Déconnexion
           </Button>
         </>
@@ -51,7 +59,10 @@ export default function Navbar() {
         <>
           <Link to="/login" className="text-blue-800 hover:text-blue-900">S'identifier</Link>
           <Link to="/register" className="text-blue-800 hover:text-blue-900">S'enregistrer</Link>
-          <Button onClick={() => navigate("/register")} className="bg-blue-600 text-white px-6 hover:bg-blue-800">
+          <Button
+            onClick={() => navigate("/register")}
+            className="bg-blue-600 text-white px-6 hover:bg-blue-800"
+          >
             Créer une offre
           </Button>
         </>
@@ -63,13 +74,14 @@ export default function Navbar() {
     <header className="w-full bg-white/30 backdrop-blur-md shadow-sm fixed z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
+
           {/* Logo */}
           <div className="flex items-center space-x-2">
             <Link to="/">
               <img
                 src={logo}
                 alt="logo"
-                className="w-24 sm:w-32 md:w-34 lg:w-37 xl:w-50 h-auto"
+                className="w-24 sm:w-32 md:w-36 lg:w-40 h-auto"
               />
             </Link>
           </div>

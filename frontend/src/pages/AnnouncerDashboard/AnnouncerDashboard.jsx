@@ -1,16 +1,36 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { motion } from "framer-motion";
 import { BriefcaseIcon, ClipboardDocumentListIcon, EyeIcon, BellIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellSolidIcon } from '@heroicons/react/24/solid';
 
-const AnnouncerDashboard = ({ userName = "Amanda" }) => {
-  // Données mock
+const AnnouncerDashboard = () => {
+  const [userName, setUserName] = useState("Utilisateur");
+
+  // Mock stats (tu peux aussi les récupérer depuis ton backend)
   const stats = [
     { id: 1, title: "Offres publiées", value: 24, icon: BriefcaseIcon, color: "bg-blue-100 text-blue-600" },
     { id: 2, title: "Candidatures reçues", value: 120, icon: ClipboardDocumentListIcon, color: "bg-green-100 text-green-600" },
     { id: 3, title: "Vues du profil", value: 456, icon: EyeIcon, color: "bg-purple-100 text-purple-600" },
     { id: 4, title: "Notifications", value: 5, icon: BellSolidIcon, color: "bg-red-100 text-red-600" },
   ];
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/users/me", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        });
+        setUserName(res.data.username || "Utilisateur");
+      } catch (err) {
+        console.error("Erreur récupération utilisateur:", err);
+      }
+    };
+
+    fetchUser();
+  }, []);
 
   return (
     <div className="flex-1 p-6 bg-gray-50 min-h-screen">

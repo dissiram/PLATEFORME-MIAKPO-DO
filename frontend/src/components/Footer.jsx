@@ -1,6 +1,6 @@
 import React from "react";
 import { Facebook, Twitter, Linkedin, Instagram } from "lucide-react";
-import logo from '../assets/logo_icon2.svg';
+import logo from '../assets/iconnew.svg';
 
 
 export default function Footer() {

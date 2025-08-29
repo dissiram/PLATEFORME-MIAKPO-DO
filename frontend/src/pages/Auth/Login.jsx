@@ -5,13 +5,15 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { motion } from "framer-motion";
 import Navbar from "../../components/Navbar";
+import { useAuth } from "../../contexts/AuthContext"; // <-- import du hook
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate(); // hook pour navigation
+  const navigate = useNavigate();
+  const { login } = useAuth(); // <-- récupère login du contexte
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,6 +32,9 @@ const Login = () => {
       localStorage.setItem("token", token);
       localStorage.setItem("userRole", user.role);
 
+      // Mise à jour immédiate du contexte
+      login({ token, role: user.role }); // <-- clé pour que Navbar se mette à jour
+
       // Redirection selon rôle
       switch (user.role) {
         case "user":
@@ -42,7 +47,7 @@ const Login = () => {
           navigate("/dashboard/admin");
           break;
         default:
-          navigate("/"); // si rôle inconnu
+          navigate("/");
       }
 
     } catch (err) {
@@ -59,7 +64,6 @@ const Login = () => {
   return (
     <div className="absolute inset-0 overflow-hidden">
       <Navbar />
-      {/* Décor */}
       <div className="absolute -top-40 -right-32 w-96 h-96 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full opacity-20 blur-3xl" />
       <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-gradient-to-tr from-teal-400 to-green-500 rounded-full opacity-20 blur-3xl" />
 

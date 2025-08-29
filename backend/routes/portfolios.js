@@ -1,84 +1,59 @@
-// routes/portfolios.js
+// routes/portfolio.js
 import express from "express";
-import { verifyToken, requireRoles } from "../middlewares/auth.js";
 import Portfolio from "../models/Portfolio.js";
-import User from "../models/User.js";
+import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// POST /api/portfolios  (create or update own)
-router.post("/", verifyToken, requireRoles("talent", "admin"), async (req, res) => {
+// ➕ Créer ou mettre à jour le portfolio de l’utilisateur (upsert)
+router.post("/", verifyToken, async (req, res) => {
   try {
-    const { slug, title, description, photo, socials = [], blocks = [] } = req.body;
+    const userId = req.user?.id;
+    if (!userId) return res.status(400).json({ error: "Utilisateur non identifié" });
 
-    const user = await User.findById(req.user.id);
-    if (!user) return res.status(404).json({ error: "Utilisateur introuvable" });
+    // 🔹 Préparer le payload
+    const payload = {
+      ...req.body,
+      user: userId,
+    };
 
-    let portfolio = await Portfolio.findOne({ userId: user._id });
+    // 🔹 Upsert : créer ou mettre à jour le portfolio
+    const portfolio = await Portfolio.findOneAndUpdate(
+      { user: userId },           // recherche par user
+      { $set: payload },          // mise à jour du contenu
+      { upsert: true, new: true } // création si absent + renvoie le doc mis à jour
+    );
 
-    // si changement de slug, vérifier l’unicité
-    if (slug) {
-      const exists = await Portfolio.findOne({ slug, _id: { $ne: portfolio?._id } });
-      if (exists) return res.status(400).json({ error: "Slug déjà utilisé" });
+    res.status(200).json(portfolio);
+  } catch (err) {
+    console.error("Erreur création/mise à jour portfolio:", err);
+    // 🔹 Si problème d'unicité persiste, informer
+    if (err.code === 11000) {
+      return res.status(400).json({ error: "Portfolio déjà existant pour cet utilisateur" });
     }
-
-    if (!portfolio) {
-      portfolio = await Portfolio.create({
-        userId: user._id,
-        slug,
-        title,
-        description,
-        photo,
-        socials,
-        blocks,
-        published: false,
-      });
-    } else {
-      portfolio.slug = slug ?? portfolio.slug;
-      portfolio.title = title ?? portfolio.title;
-      portfolio.description = description ?? portfolio.description;
-      portfolio.photo = photo ?? portfolio.photo;
-      portfolio.socials = socials ?? portfolio.socials;
-      portfolio.blocks = Array.isArray(blocks) ? blocks : portfolio.blocks;
-      await portfolio.save();
-    }
-
-    res.json(portfolio);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
+    res.status(500).json({ error: "Erreur création/mise à jour portfolio" });
   }
 });
 
-// GET /api/portfolios/:slug (public)
-router.get("/:slug", async (req, res) => {
+// 🟢 Récupérer le portfolio de l’utilisateur connecté
+router.get("/me", verifyToken, async (req, res) => {
   try {
-    const portfolio = await Portfolio.findOne({ slug: req.params.slug });
+    const portfolio = await Portfolio.findOne({ user: req.user.id });
     if (!portfolio) return res.status(404).json({ error: "Portfolio introuvable" });
-    // Optionnel: n’exposer que si publié
-    if (!portfolio.published) {
-      return res.status(403).json({ error: "Portfolio non publié" });
-    }
     res.json(portfolio);
-  } catch {
+  } catch (err) {
+    console.error("Erreur récupération portfolio:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// PUT /api/portfolios/publish/:id
-router.put("/publish/:id", verifyToken, requireRoles("talent", "admin"), async (req, res) => {
+// 📦 Récupérer tous les portfolios (optionnel)
+router.get("/", async (_req, res) => {
   try {
-    const portfolio = await Portfolio.findById(req.params.id);
-    if (!portfolio) return res.status(404).json({ error: "Introuvable" });
-    // Ownership: le talent ne peut publier que son portfolio
-    if (req.user.role !== "admin" && String(portfolio.userId) !== req.user.id) {
-      return res.status(403).json({ error: "Accès interdit" });
-    }
-    portfolio.published = !!req.body.published;
-    portfolio.publishedAt = portfolio.published ? new Date() : null;
-    await portfolio.save();
-    res.json(portfolio);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
+    const portfolios = await Portfolio.find();
+    res.json(portfolios);
+  } catch (err) {
+    res.status(500).json({ error: "Erreur lecture portfolios" });
   }
 });
 

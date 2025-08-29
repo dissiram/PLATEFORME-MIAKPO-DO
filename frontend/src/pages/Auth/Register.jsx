@@ -5,6 +5,7 @@ import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { motion } from "framer-motion";
 import Navbar from "../../components/Navbar";
+import { useAuth } from "../../contexts/AuthContext"; // <-- import du hook
 
 const Register = () => {
   const [step, setStep] = useState(1);
@@ -15,6 +16,7 @@ const Register = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth(); // <-- récupération de la fonction login du contexte
 
   const handleNextStep = () => {
     if (!role) return setError("Veuillez choisir un rôle");
@@ -41,9 +43,26 @@ const Register = () => {
         role
       });
 
-      navigate("/login", {
-        state: { registrationSuccess: true, email }
-      });
+      const { token, user } = res.data;
+
+      // Mettre à jour le contexte pour que Navbar se mette à jour immédiatement
+      login({ token, role: user.role });
+
+      // Redirection selon rôle
+      switch (user.role) {
+        case "user":
+          navigate("/dashboard/user");
+          break;
+        case "announcer":
+          navigate("/dashboard/announcer");
+          break;
+        case "admin":
+          navigate("/dashboard/admin");
+          break;
+        default:
+          navigate("/");
+      }
+
     } catch (err) {
       console.error("Erreur d'inscription:", err);
       const msg =
@@ -58,7 +77,6 @@ const Register = () => {
   return (
     <div className="absolute inset-0 overflow-hidden">
       <Navbar />
-      {/* Décor */}
       <div className="absolute -top-40 -right-32 w-96 h-96 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full opacity-20 blur-3xl" />
       <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-gradient-to-tr from-teal-400 to-green-500 rounded-full opacity-20 blur-3xl" />
 

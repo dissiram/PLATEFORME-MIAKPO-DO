@@ -1,29 +1,23 @@
+// models/Portfolio.js
 import mongoose from "mongoose";
 
 const blockSchema = new mongoose.Schema({
-  type: { type: String, enum: ["text", "image", "video", "link", "section"], required: true },
-  title: { type: String },
-  content: { type: String },
-  color: { type: String },
-  size: {
-    width: { type: Number, default: 300 },
-    height: { type: Number, default: 150 }
-  },
-  position: {
-    x: { type: Number, default: 0 },
-    y: { type: Number, default: 0 }
-  }
-}, { _id: false });
+  type: { type: String, required: true },
+  content: { type: String, default: "" },
+  size: { type: String, default: "medium" },
+  bgColor: { type: String, default: "bg-white" },
+});
 
 const portfolioSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true, required: true },
-  slug: { type: String, required: true, unique: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // ✅ lien avec utilisateur
   title: { type: String, required: true },
-  description: { type: String },
-  photo: { type: String },
-  published: { type: Boolean, default: false },
-  publishedAt: { type: Date },
-  blocks: [blockSchema]
+  profile: {
+    name: { type: String, default: "" },
+    bio: { type: String, default: "" },
+    image: { type: String, default: "" },
+  },
+  blocks: [blockSchema],
+  public: { type: Boolean, default: false },
 }, { timestamps: true });
 
 export default mongoose.model("Portfolio", portfolioSchema);

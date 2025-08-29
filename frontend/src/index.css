@@ -1,12 +1,48 @@
 @import "tailwindcss";
 
 .bgimg{
-background-image: url(../public/hero1.png);
+background-image: url(../public/hero2.png);
 background-repeat: no-repeat;
 background-size: cover;
+margin-top: 40px;
 background-position: center;
 }
 
 /* import css pour react-grid-layout / react-resizable */
-@import "~react-grid-layout/css/styles.css";
-@import "~react-resizable/css/styles.css";
+@import "react-grid-layout/css/styles.css";
+@import "react-resizable/css/styles.css";
+
+
+/* Pour Chrome, Edge et Safari */
+::-webkit-scrollbar {
+  width: 10px; /* largeur de la scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* couleur du fond */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #3b82f6, #1e3a8a); /* dégradé */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #2563eb, #1e40af);
+}
+
+/* Pour Firefox */
+* {
+  scrollbar-width: thin; /* taille */
+  scrollbar-color: #3b82f6 #f1f1f1; /* pouce | fond */
+}
+
+@keyframes slideIn {
+  0% { transform: translateX(100%) translateY(0); opacity: 0; }
+  100% { transform: translateX(0) translateY(0); opacity: 1; }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out forwards;
+}
