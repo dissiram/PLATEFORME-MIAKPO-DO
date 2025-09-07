@@ -61,7 +61,7 @@ const UserSidebar = ({ role }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed min-h-screen ml-px rounded-4xl bg-blue-900 m-5 p-6 shadow-lg transform transition-transform duration-300 z-40
+        className={` min-h-screen  ml-px rounded-4xl  m-5 p-6 shadow-lg transform transition-transform duration-300 z-40
         ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0 lg:static`}
       >
         {/* Logo */}
@@ -72,31 +72,31 @@ const UserSidebar = ({ role }) => {
         </div>
 
         {/* Liens avec icônes + tooltip */}
-        <div className="flex flex-col space-y-6 items-center">
-          {links.map((link) => {
-            const Icon = link.icon;
-            return (
-              <div key={link.name} className="relative group">
-                <NavLink
-                  to={link.path}
-                  end
-                  className={({ isActive }) =>
-                    `flex items-center justify-center p-3 rounded-[80%_80%_60%_60%/60%_60%_70%_100%] transition-colors ${
-                      isActive ? "bg-white text-gray-900 shadow-sm" : "text-white hover:bg-blue-800"
-                    }`
-                  }
-                  onClick={() => setIsOpen(false)}
-                >
-                  <Icon className="h-6 w-6" />
-                </NavLink>
-                {/* Tooltip */}
-                <div className="w-30 absolute left-14 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
-                  {link.name}
-                </div>
-              </div>
-            );
-          })}
+    <div className="flex flex-col space-y-6 items-center">
+  {links.map((link) => {
+    const Icon = link.icon;
+    return (
+      <div key={link.name} className="relative group">
+        <NavLink
+          to={link.path}
+          end
+          className={({ isActive }) =>
+            `flex items-center justify-center w-12 h-12 rounded-lg transition-colors duration-200
+            ${isActive ? "bg-blue-600 text-white" : "text-gray-600 hover:bg-gray-100"}`
+          }
+          onClick={() => setIsOpen(false)}
+        >
+          <Icon className="h-6 w-6" />
+        </NavLink>
+        {/* Tooltip */}
+        <div className="w-30 absolute left-14 top-1/2 -translate-y-1/2 bg-blue-600 text-white text-xs px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 pointer-events-none">
+          {link.name}
         </div>
+      </div>
+    );
+  })}
+</div>
+
       </div>
     </>
   );

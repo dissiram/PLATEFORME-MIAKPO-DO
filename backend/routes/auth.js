@@ -22,8 +22,10 @@ router.post("/register", async (req, res) => {
     const token = signToken(user);
     res.status(201).json({ token, user: { ...user.toObject(), password: undefined } });
   } catch (e) {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
+  console.error("Erreur inscription :", e); // <--- log complet
+  res.status(500).json({ error: e.message });
+}
+
 });
 
 router.post("/login", async (req, res) => {

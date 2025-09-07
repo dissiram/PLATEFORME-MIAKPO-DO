@@ -12,11 +12,11 @@ import {
   BuildingOfficeIcon,
 } from "@heroicons/react/24/outline";
 
-const UserDashboard = () => {
+export default function UserDashboard() {
   const [user, setUser] = useState(null);
   const [offers, setOffers] = useState([]);
   const [expandedOffer, setExpandedOffer] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false); // pour dropdown
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -25,39 +25,26 @@ const UserDashboard = () => {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         });
         setUser(res.data);
-      } catch (err) {
-        console.error("Erreur récupération utilisateur:", err);
-      }
+      } catch (err) { console.error(err); }
     };
 
     const fetchOffers = async () => {
       try {
         const res = await axios.get("http://localhost:5000/api/offers");
         setOffers(res.data);
-      } catch (err) {
-        console.error("Erreur récupération offres:", err);
-      }
+      } catch (err) { console.error(err); }
     };
 
     fetchUser();
     fetchOffers();
   }, []);
 
-  const toggleExpand = (id) => {
-    setExpandedOffer(expandedOffer === id ? null : id);
-  };
-
+  const toggleExpand = (id) => setExpandedOffer(expandedOffer === id ? null : id);
   const toggleMenu = () => setMenuOpen(!menuOpen);
-
   const handleMenuClick = (option) => {
     setMenuOpen(false);
-    if (option === "cv") {
-      // redirection vers CV
-      window.location.href = "/dashboard/user/mycv"; 
-    } else if (option === "portfolio") {
-      // redirection vers Portfolio
-      window.location.href = "/dashboard/user/myportfolio";
-    }
+    if (option === "cv") window.location.href = "/dashboard/user/mycv";
+    else if (option === "portfolio") window.location.href = "/dashboard/user/myportfolio";
   };
 
   const getTypeIcon = (type) => {
@@ -82,30 +69,33 @@ const UserDashboard = () => {
 
   const getDeadlineColor = (deadline) => {
     if (!deadline) return "text-gray-600";
-    const now = new Date();
-    const date = new Date(deadline);
-    const diffDays = (date - now) / (1000 * 60 * 60 * 24);
+    const diffDays = (new Date(deadline) - new Date()) / (1000 * 60 * 60 * 24);
     if (diffDays <= 3) return "text-red-500";
     if (diffDays <= 10) return "text-orange-500";
     return "text-green-500";
   };
 
-  if (!offers || offers.length === 0) {
-    return <p className="text-center text-gray-500 p-6">Aucune offre trouvée pour l’instant.</p>;
-  }
+  const handleApply = async (offerId) => {
+    try {
+      await axios.post(`http://localhost:5000/api/applications/${offerId}/apply`, {}, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      alert("Candidature envoyée !");
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || "Erreur lors de la candidature");
+    }
+  };
 
   return (
-    <div className="flex flex-col bg-gray-50 min-h-screen p-6">
-      {/* Header */}
-      <div className="mb-8 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Salut, {user?.username || "Utilisateur"} !
-          </h1>
-          <p className="text-gray-600 mt-1">Jetons un coup d'œil à vos offres disponibles</p>
-        </div>
+    <div className="flex flex-col bg-gray-50 min-h-screen p-6 space-y-10">
 
-        {/* Avatar avec menu */}
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Salut, {user?.username || "Utilisateur"} !</h1>
+          <p className="text-gray-600 mt-1">Découvrez vos offres disponibles</p>
+        </div>
         <div className="relative">
           <img
             src="../public/avatar.png"
@@ -115,18 +105,8 @@ const UserDashboard = () => {
           />
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-40 bg-white border rounded-lg shadow-lg z-50">
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-indigo-100"
-                onClick={() => handleMenuClick("cv")}
-              >
-                Voir CV
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-indigo-100"
-                onClick={() => handleMenuClick("portfolio")}
-              >
-                Voir Portfolio
-              </button>
+              <button className="block w-full text-left px-4 py-2 hover:bg-indigo-100" onClick={() => handleMenuClick("cv")}>Voir CV</button>
+              <button className="block w-full text-left px-4 py-2 hover:bg-indigo-100" onClick={() => handleMenuClick("portfolio")}>Voir Portfolio</button>
             </div>
           )}
         </div>
@@ -137,11 +117,7 @@ const UserDashboard = () => {
         {offers.map((offer) => {
           const TypeIcon = getTypeIcon(offer.contractType || offer.type);
           return (
-            <motion.div
-              key={offer._id}
-              className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-pointer relative"
-              whileHover={{ y: -4 }}
-            >
+            <motion.div key={offer._id} className="bg-white p-6 rounded-2xl shadow-sm hover:shadow-md transition-all relative">
               {offer.deadline && (
                 <div className={`absolute top-4 right-4 text-xs font-medium flex items-center ${getDeadlineColor(offer.deadline)}`}>
                   <CalendarIcon className="h-4 w-4 mr-1" />
@@ -153,7 +129,8 @@ const UserDashboard = () => {
                   <TypeIcon className={`h-5 w-5 ${getTypeColor(offer.type).split(" ")[1]}`} />
                 </div>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">{offer.title || "Offre sans titre"}</h3>
+              <h3 className="font-semibold text-gray-900 mb-1">{offer.title || "Offre sans titre"}</h3>
+              <p className="text-sm text-gray-500 mb-2">{offer.contractType || offer.type}</p>
               <p className="text-gray-600 text-sm mb-3 flex items-center">
                 <BuildingOfficeIcon className="h-4 w-4 mr-1" />
                 {offer.company || "Entreprise inconnue"}
@@ -177,40 +154,19 @@ const UserDashboard = () => {
               {expandedOffer === offer._id && (
                 <div className="mt-3 space-y-2">
                   <p className="text-gray-700">{offer.description || "Pas de description"}</p>
-                  {offer.image && (
-                    <img
-                      src={`http://localhost:5000/${offer.image}`}
-                      alt={offer.title}
-                      className="w-full h-40 object-cover rounded-lg mt-2"
-                    />
-                  )}
-                  {offer.attachments && offer.attachments.length > 0 && (
-                    <div className="mt-2">
-                      {offer.attachments.map((file, idx) => (
-                        <a
-                          key={idx}
-                          href={`http://localhost:5000/${file}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center text-indigo-600 hover:underline mb-1"
-                        >
-                          <DocumentIcon className="h-4 w-4 mr-1" /> {file.split("/").pop()}
-                        </a>
-                      ))}
-                    </div>
-                  )}
+                  {offer.image && <img src={`http://localhost:5000/${offer.image}`} alt={offer.title} className="w-full h-40 object-cover rounded-lg mt-2" />}
                 </div>
               )}
-              <div className="absolute bottom-4 right-4 text-xs font-medium text-gray-700 flex items-center">
-                <BriefcaseIcon className="h-4 w-4 mr-1" />
-                {offer.contractType || offer.type || "Non spécifié"}
-              </div>
+              <button
+                onClick={() => handleApply(offer._id)}
+                className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition"
+              >
+                Postuler
+              </button>
             </motion.div>
           );
         })}
       </div>
     </div>
   );
-};
-
-export default UserDashboard;
+}

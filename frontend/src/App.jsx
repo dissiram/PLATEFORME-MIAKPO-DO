@@ -28,8 +28,7 @@ import MyPortfolio from "./pages/UserDashboard/MyPortfolio";
 import AnnouncerDashboard from "./pages/AnnouncerDashboard/AnnouncerDashboard";
 import CreateOffer from "./pages/AnnouncerDashboard/CreateOffer";
 import MyOffers from "./pages/AnnouncerDashboard/MyOffers";
-import AnnouncerCandidatures from "./pages/AnnouncerDashboard/Candidatures";
-import ApplicantsCV from "./pages/AnnouncerDashboard/Candidatures";
+import  RecruiterApplications from "./pages/AnnouncerDashboard/Candidatures";
 
 // Page admin
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
@@ -95,7 +94,7 @@ function App() {
             <Route index element={<AnnouncerDashboard />} />
             <Route path="create" element={<CreateOffer />} />
             <Route path="offers" element={<MyOffers />} />
-            <Route path="candidatures" element={<ApplicantsCV/>} />
+            <Route path="candidatures" element={<RecruiterApplications/>} />
 
           </Route>
 

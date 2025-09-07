@@ -41,14 +41,8 @@ const BentoBlock = ({ block, index, onUpdate, onDelete, onUploadImage, onUploadV
     const file = e.target.files[0];
     if (!file) return;
 
-    if (block.type === "image") {
-      const reader = new FileReader();
-      reader.onloadend = () => onUploadImage(index, reader.result);
-      reader.readAsDataURL(file);
-    } else if (block.type === "video") {
-      const url = URL.createObjectURL(file);
-      onUploadVideo(index, url);
-    }
+    if (block.type === "image") onUploadImage(index, file);
+    else if (block.type === "video") onUploadVideo(index, file);
   };
 
   const renderContent = () => {
@@ -68,7 +62,10 @@ const BentoBlock = ({ block, index, onUpdate, onDelete, onUploadImage, onUploadV
         return block.content ? (
           <img src={block.content} alt="" className="w-full h-48 object-cover rounded" />
         ) : (
-          <div className="flex flex-col items-center justify-center text-gray-400 h-48 cursor-pointer" onClick={() => fileInputRef.current.click()}>
+          <div
+            className="flex flex-col items-center justify-center text-gray-400 h-48 cursor-pointer"
+            onClick={() => fileInputRef.current.click()}
+          >
             <PhotoIcon className="w-10 h-10 mb-1" /> Ajouter une image
           </div>
         );
@@ -76,7 +73,10 @@ const BentoBlock = ({ block, index, onUpdate, onDelete, onUploadImage, onUploadV
         return block.content ? (
           <video src={block.content} controls className="w-full h-48 rounded" />
         ) : (
-          <div className="flex flex-col items-center justify-center text-gray-400 h-48 cursor-pointer" onClick={() => fileInputRef.current.click()}>
+          <div
+            className="flex flex-col items-center justify-center text-gray-400 h-48 cursor-pointer"
+            onClick={() => fileInputRef.current.click()}
+          >
             <VideoCameraIcon className="w-10 h-10 mb-1" /> Ajouter une vidéo
           </div>
         );
@@ -122,17 +122,36 @@ const BentoBlock = ({ block, index, onUpdate, onDelete, onUploadImage, onUploadV
     >
       <AnimatePresence>
         {showToolbar && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute top-2 right-2 flex gap-1 bg-white/90 rounded p-1 shadow">
-            <button onClick={toggleEditing} title="Modifier"><PencilIcon className="w-5 h-5" /></button>
-            <button onClick={handleSizeChange} title="Changer taille"><ArrowUturnRightIcon className="w-5 h-5" /></button>
-            <button onClick={handleColorChange} title="Changer couleur"><PaintBrushIcon className="w-5 h-5" /></button>
-            <button onClick={() => onDelete(index)} title="Supprimer"><TrashIcon className="w-5 h-5 text-red-600" /></button>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute top-2 right-2 flex gap-1 bg-white/90 rounded p-1 shadow"
+          >
+            <button onClick={toggleEditing} title="Modifier">
+              <PencilIcon className="w-5 h-5" />
+            </button>
+            <button onClick={handleSizeChange} title="Changer taille">
+              <ArrowUturnRightIcon className="w-5 h-5" />
+            </button>
+            <button onClick={handleColorChange} title="Changer couleur">
+              <PaintBrushIcon className="w-5 h-5" />
+            </button>
+            <button onClick={() => onDelete(index)} title="Supprimer">
+              <TrashIcon className="w-5 h-5 text-red-600" />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
       {(block.type === "image" || block.type === "video") && (
-        <input type="file" ref={fileInputRef} className="hidden" onChange={handleFileUpload} accept={block.type === "image" ? "image/*" : "video/*"} />
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileUpload}
+          accept={block.type === "image" ? "image/*" : "video/*"}
+        />
       )}
 
       {renderContent()}
@@ -150,6 +169,7 @@ const BentoPortfolio = () => {
   const [saved, setSaved] = useState(false);
   const profileFileInputRef = useRef();
 
+  // ------------------- Historique -------------------
   const pushHistory = useCallback(
     (newBlocks) => {
       const newHist = history.slice(0, historyIndex + 1);
@@ -174,6 +194,7 @@ const BentoPortfolio = () => {
     }
   };
 
+  // ------------------- Gestion des blocs -------------------
   const addBlock = (type) => {
     const newBlock = { type, content: "", size: "medium", bgColor: "bg-white" };
     const newBlocks = [...blocks, newBlock];
@@ -191,17 +212,53 @@ const BentoPortfolio = () => {
     setBlocks(newBlocks);
     pushHistory(newBlocks);
   };
-  const handleUploadProfileImage = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onloadend = () => setProfile({ ...profile, image: reader.result });
-    reader.readAsDataURL(file);
-  };
-  const handleUploadImage = (i, dataUrl) => updateBlock(i, { ...blocks[i], content: dataUrl });
-  const handleUploadVideo = (i, url) => updateBlock(i, { ...blocks[i], content: url });
 
-  // Charger portfolio existant
+  // ------------------- Fonction générique d'upload -------------------
+  const uploadFile = async (file, endpoint) => {
+    if (!file) return null;
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`http://localhost:5000/api/uploads/${endpoint}`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Erreur upload");
+      }
+      const data = await res.json();
+      return `http://localhost:5000/uploads/${data.filename}`;
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Erreur upload : " + err.message);
+      return null;
+    }
+  };
+
+  // ------------------- Upload image de profil -------------------
+  const handleUploadProfileImage = async (e) => {
+    const file = e.target.files[0];
+    const uploadedUrl = await uploadFile(file, "profile");
+    if (uploadedUrl) setProfile({ ...profile, image: uploadedUrl });
+  };
+
+  // ------------------- Upload image d'un bloc -------------------
+  const handleUploadImage = async (i, file) => {
+    const uploadedUrl = await uploadFile(file, "block");
+    if (uploadedUrl) updateBlock(i, { ...blocks[i], content: uploadedUrl });
+  };
+
+  // ------------------- Upload vidéo (local) -------------------
+  const handleUploadVideo = (i, file) => {
+    const url = URL.createObjectURL(file);
+    updateBlock(i, { ...blocks[i], content: url });
+  };
+
+  // ------------------- Charger portfolio existant -------------------
   useEffect(() => {
     const fetchPortfolio = async () => {
       const token = localStorage.getItem("token");
@@ -222,7 +279,7 @@ const BentoPortfolio = () => {
     fetchPortfolio();
   }, []);
 
-  // Sauvegarde
+  // ------------------- Sauvegarde -------------------
   const saveToDB = async () => {
     try {
       setSaving(true);
@@ -257,20 +314,41 @@ const BentoPortfolio = () => {
           ) : (
             <UserCircleIcon className="w-28 h-28 text-gray-400" />
           )}
-          <button onClick={() => profileFileInputRef.current.click()} className="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full text-white shadow-lg hover:bg-blue-600 transition" title="Changer la photo">
+          <button
+            onClick={() => profileFileInputRef.current.click()}
+            className="absolute bottom-0 right-0 bg-blue-500 p-2 rounded-full text-white shadow-lg hover:bg-blue-600 transition"
+            title="Changer la photo"
+          >
             <CloudArrowUpIcon className="w-5 h-5" />
           </button>
           <input type="file" accept="image/*" ref={profileFileInputRef} onChange={handleUploadProfileImage} className="hidden" />
         </div>
-        <input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} placeholder="Votre nom" className="text-3xl font-bold border-b text-center focus:outline-none" />
-        <textarea value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} placeholder="Courte bio..." className="text-gray-600 mt-1 w-full text-center border rounded p-2 focus:outline-none" />
+        <input
+          value={profile.name}
+          onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+          placeholder="Votre nom"
+          className="text-3xl font-bold border-b text-center focus:outline-none"
+        />
+        <textarea
+          value={profile.bio}
+          onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+          placeholder="Courte bio..."
+          className="text-gray-600 mt-1 w-full text-center border rounded p-2 focus:outline-none"
+        />
       </div>
 
       {/* Blocks */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
         {blocks.map((block, i) => (
           <div key={i} className={gridCols[block.size] || "col-span-2"}>
-            <BentoBlock block={block} index={i} onUpdate={updateBlock} onDelete={deleteBlock} onUploadImage={handleUploadImage} onUploadVideo={handleUploadVideo} />
+            <BentoBlock
+              block={block}
+              index={i}
+              onUpdate={updateBlock}
+              onDelete={deleteBlock}
+              onUploadImage={handleUploadImage}
+              onUploadVideo={handleUploadVideo}
+            />
           </div>
         ))}
       </div>
@@ -278,14 +356,25 @@ const BentoPortfolio = () => {
       {/* Ajouter blocs */}
       <div className="fixed bottom-16 left-1/2 -translate-x-1/2 flex gap-3 bg-white p-3 rounded-xl shadow-lg z-50">
         {blockTypes.map((b) => (
-          <button key={b.type} onClick={() => addBlock(b.type)} className="flex items-center gap-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition" title={b.label}>
+          <button
+            key={b.type}
+            onClick={() => addBlock(b.type)}
+            className="flex items-center gap-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full transition"
+            title={b.label}
+          >
             <b.icon className="w-5 h-5" />
           </button>
         ))}
       </div>
 
       {/* Sauvegarder */}
-      <button onClick={saveToDB} disabled={saving} className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg flex items-center gap-2 ${saving ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"} text-white transition`}>
+      <button
+        onClick={saveToDB}
+        disabled={saving}
+        className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg flex items-center gap-2 ${
+          saving ? "bg-gray-400" : "bg-blue-500 hover:bg-blue-600"
+        } text-white transition`}
+      >
         {saving ? "Sauvegarde..." : saved ? "Sauvegardé !" : "Sauvegarder"}
         <CloudArrowUpIcon className="w-5 h-5" />
       </button>
@@ -295,7 +384,11 @@ const BentoPortfolio = () => {
         <button onClick={undo} disabled={historyIndex <= 0} className="p-2 bg-gray-200 rounded disabled:opacity-50">
           <ArrowUturnLeftIcon className="w-5 h-5" />
         </button>
-        <button onClick={redo} disabled={historyIndex >= history.length - 1} className="p-2 bg-gray-200 rounded disabled:opacity-50">
+        <button
+          onClick={redo}
+          disabled={historyIndex >= history.length - 1}
+          className="p-2 bg-gray-200 rounded disabled:opacity-50"
+        >
           <ArrowUturnRightIcon className="w-5 h-5" />
         </button>
       </div>

@@ -64,6 +64,9 @@
     ],
     "onlyBuiltDependencies": [
       "@firebase/util",
+      "@swc/core",
+      "core-js",
+      "esbuild",
       "protobufjs"
     ]
   }

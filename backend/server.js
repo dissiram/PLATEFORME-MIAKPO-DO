@@ -11,6 +11,8 @@ import offerRoutes from "./routes/offers.js";
 import uploadRoutes from "./routes/uploads.js";
 import portfolioRoutes from "./routes/portfolios.js";
 import resumeRoutes from "./routes/resume.js";
+import applicationRoutes from "./routes/application.js";
+import statsRoutes from "./routes/stats.js";
 
 const app = express();
 
@@ -19,7 +21,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 
 // Exposer les fichiers uploadés
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 
 // Connexion à MongoDB
 mongoose.connect(process.env.MONGO_URI)
@@ -33,9 +35,11 @@ app.use("/api/offers", offerRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/resumes", resumeRoutes);
-
+app.use("/api/applications", applicationRoutes);
+app.use("/api/stats", statsRoutes);
 
 app.get("/health", (_req, res) => res.json({ ok: true }));
 
 const port = process.env.PORT || 5000;
+
 app.listen(port, () => console.log(`API running on http://localhost:${port}`));

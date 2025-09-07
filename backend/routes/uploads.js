@@ -50,4 +50,16 @@ router.get("/me", verifyToken, async (req, res) => {
   }
 });
 
+// POST /api/uploads/profile
+router.post("/profile", verifyToken, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Fichier manquant" });
+  res.status(201).json({ filename: req.file.filename });
+});
+
+// POST /api/uploads/block
+router.post("/block", verifyToken, upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Fichier manquant" });
+  res.status(201).json({ filename: req.file.filename });
+});
+
 export default router;
