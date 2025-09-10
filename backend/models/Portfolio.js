@@ -1,4 +1,3 @@
-// models/Portfolio.js
 import mongoose from "mongoose";
 
 const blockSchema = new mongoose.Schema({

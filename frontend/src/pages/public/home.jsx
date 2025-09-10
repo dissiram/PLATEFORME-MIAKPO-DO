@@ -1,5 +1,4 @@
 import  Hero  from '../../components/Hero';
-import  SearchForm  from '../../components/SearchForm';
 import  JobCategories  from '../../components/JobCategories';
 import Choisir  from '../../components/Choisir';
 import Navbar from '../../components/Navbar'
@@ -11,7 +10,6 @@ export default function Home() {
       <main>
         <Navbar/>
         <Hero />
-        <SearchForm />
         <Choisir />
         <JobCategories />
         <Footer/>

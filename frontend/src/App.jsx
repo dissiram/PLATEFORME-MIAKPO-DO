@@ -9,6 +9,7 @@ import Login from "./pages/Auth/Login";
 import Register from "./pages/Auth/Register";
 import NotFound from "./pages/public/NotFound";
 import PublicCV from "./pages/public/PublicCV";
+import PublicPortfolio from "./pages/public/PublicPortfolio";
 
 // Layouts
 import UserLayout from "./layout/UserLayout";
@@ -29,6 +30,7 @@ import AnnouncerDashboard from "./pages/AnnouncerDashboard/AnnouncerDashboard";
 import CreateOffer from "./pages/AnnouncerDashboard/CreateOffer";
 import MyOffers from "./pages/AnnouncerDashboard/MyOffers";
 import  RecruiterApplications from "./pages/AnnouncerDashboard/Candidatures";
+import EditOffer from "./pages/AnnouncerDashboard/EditOffer"; 
 
 // Page admin
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
@@ -57,7 +59,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/cv" element={<PublicCV />} />
           <Route path="*" element={<NotFound />} />
-
+          <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
 
           {/* Routes utilisateurs avec layout + sidebar */}
           <Route
@@ -80,23 +82,36 @@ function App() {
 
           </Route>
 
-          {/* Routes annonceurs avec layout + sidebar */}
-          <Route
-            path="/dashboard/announcer"
-            element={
-              <PrivateRoute role="announcer">
-                <OfferProvider>
-                  <AnnouncerLayout />
-                </OfferProvider>
-              </PrivateRoute>
-            }
-          >
-            <Route index element={<AnnouncerDashboard />} />
-            <Route path="create" element={<CreateOffer />} />
-            <Route path="offers" element={<MyOffers />} />
-            <Route path="candidatures" element={<RecruiterApplications/>} />
+        {/* Routes annonceurs avec layout + sidebar */}
+<Route
+  path="/dashboard/announcer"
+  element={
+    <PrivateRoute role="announcer">
+      <OfferProvider>
+        <AnnouncerLayout />
+      </OfferProvider>
+    </PrivateRoute>
+  }
+>
+  <Route index element={<AnnouncerDashboard />} />
+  <Route path="create" element={<CreateOffer />} />
+  
+  {/* Liste des offres */}
+  <Route
+    path="offers"
+    element={<MyOffers />}
+  />
 
-          </Route>
+  {/* Edition d'une offre : route dynamique avec l'ID */}
+  <Route
+    path="offers/editOffer/:id"
+    element={<EditOffer />}
+  />
+
+  {/* Candidatures reçues pour l'annonceur */}
+  <Route path="candidatures" element={<RecruiterApplications />} />
+</Route>
+
 
           {/* Route admin */}
           <Route path="/dashboard/admin" element={   <AdminDashboard />} />

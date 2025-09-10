@@ -69,4 +69,6 @@ router.delete("/me", verifyToken, async (req, res) => {
   }
 });
 
+
+
 export default router;

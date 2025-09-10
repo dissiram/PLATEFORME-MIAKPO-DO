@@ -1,94 +1,110 @@
-// contexts/OfferContext.jsx
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState } from "react";
+import axios from "axios";
 
 const OfferContext = createContext();
 
-export const useOffers = () => useContext(OfferContext);
-
 export const OfferProvider = ({ children }) => {
   const [offers, setOffers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Récupérer les offres depuis le backend
+  // Récupérer toutes les offres
   const fetchOffers = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/offers`, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-          "Cache-Control": "no-cache", // ⚡ éviter le 304
-        },
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Erreur récupération offres");
-      }
-
-      const text = await res.text();
-      const data = text ? JSON.parse(text) : [];
-      setOffers(data.items || data);
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/offers`);
+      setOffers(res.data);
     } catch (err) {
-      console.error("Erreur fetchOffers:", err);
-      setOffers([]);
+      console.error(err);
+      setError("Impossible de récupérer les offres.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Ajouter une offre (POST)
-  const addOffer = async (newOffer) => {
+  // Récupérer les offres de l'utilisateur connecté
+  const fetchUserOffers = async () => {
+    setLoading(true);
+    setError(null);
     try {
       const token = localStorage.getItem("token");
-      const formData = new FormData();
-
-      for (const key in newOffer) {
-        if (key === "image" && newOffer.image) {
-          formData.append("image", newOffer.image);
-        } else if (key === "attachments" && Array.isArray(newOffer.attachments)) {
-          newOffer.attachments.forEach(file => formData.append("attachments", file));
-        } else if (newOffer[key] !== undefined) {
-          formData.append(key, newOffer[key]);
-        }
-      }
-
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/api/offers`, {
-        method: "POST",
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-        },
-        body: formData,
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/offers/me`, {
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
       });
-
-      if (!res.ok) {
-        let errMsg = "Erreur création offre";
-        try {
-          const text = await res.text();
-          const json = text ? JSON.parse(text) : null;
-          errMsg = json?.error || errMsg;
-        } catch {
-          // ignore si pas JSON
-        }
-        throw new Error(errMsg);
-      }
-
-      // attendre la réponse JSON avant de rafraîchir
-      await res.json();
-      fetchOffers();
+      setOffers(res.data);
     } catch (err) {
-      console.error("Erreur addOffer:", err);
-      alert(err.message);
+      console.error(err);
+      setError("Impossible de récupérer vos offres.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchOffers();
-  }, []);
+  // Créer une offre
+  const createOffer = async (formData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/offers`, formData, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setOffers((prev) => [res.data, ...prev]);
+    } catch (err) {
+      console.error(err);
+      setError("Impossible de créer l'offre.");
+    }
+  };
+
+  // Supprimer une offre
+  const deleteOffer = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/offers/${id}`, {
+        headers: { Authorization: token ? `Bearer ${token}` : undefined },
+      });
+      setOffers((prev) => prev.filter((offer) => offer._id !== id));
+    } catch (err) {
+      console.error(err);
+      setError("Impossible de supprimer l'offre.");
+    }
+  };
+
+  // Mettre à jour une offre
+  const updateOffer = async (id, formData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.put(`${import.meta.env.VITE_API_URL}/api/offers/${id}`, formData, {
+        headers: {
+          Authorization: token ? `Bearer ${token}` : undefined,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      setOffers((prev) => prev.map((offer) => (offer._id === id ? res.data : offer)));
+    } catch (err) {
+      console.error(err);
+      setError("Impossible de mettre à jour l'offre.");
+    }
+  };
 
   return (
-    <OfferContext.Provider value={{ offers, loading, fetchOffers, addOffer }}>
+    <OfferContext.Provider
+      value={{
+        offers,
+        loading,
+        error,
+        fetchOffers,
+        fetchUserOffers,
+        createOffer,
+        deleteOffer,
+        updateOffer,
+      }}
+    >
       {children}
     </OfferContext.Provider>
   );
 };
+
+export const useOffers = () => useContext(OfferContext);

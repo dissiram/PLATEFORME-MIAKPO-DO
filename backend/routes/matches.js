@@ -1,76 +1,172 @@
-// routes/matches.js
-import express from "express";
-import { verifyToken, requireRoles } from "../middlewares/auth.js";
-import Match from "../models/Match.js";
-import Offer from "../models/Offer.js";
+import express from 'express';
+import mongoose from 'mongoose';
+import MatchingService from '../services/matching/MatchingService.js';
+import auth from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// POST /api/matches  (talent postule)
-router.post("/", verifyToken, requireRoles("talent", "admin"), async (req, res) => {
+// GET /api/match/offers/:resumeId
+router.get('/offers/:resumeId', auth, async (req, res) => {
   try {
-    const { offerId } = req.body;
-    if (!offerId) return res.status(400).json({ error: "offerId requis" });
+    const { resumeId } = req.params;
+    const { 
+      page = 1, 
+      limit = 10, 
+      minScore = 65,
+      skills,
+      location,
+      remote,
+      category 
+    } = req.query;
 
-    const exists = await Match.findOne({ offerId, talentId: req.user.id });
-    if (exists) return res.status(400).json({ error: "Déjà postulé" });
+    if (!mongoose.Types.ObjectId.isValid(resumeId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de CV invalide'
+      });
+    }
 
-    const match = await Match.create({
-      offerId,
-      talentId: req.user.id,
-      status: "pending",
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      minScore: parseInt(minScore),
+      skills: skills ? skills.split(',') : [],
+      location: location || '',
+      remote: remote === 'true',
+      category: category || ''
+    };
+
+    console.log(`📊 Matching request for resume: ${resumeId}`, options);
+
+    const matches = await MatchingService.getMatches(resumeId, options);
+    
+    const startIndex = (page - 1) * limit;
+    const endIndex = page * limit;
+    const paginatedMatches = matches.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      data: {
+        matches: paginatedMatches,
+        pagination: {
+          current: parseInt(page),
+          totalPages: Math.ceil(matches.length / limit),
+          totalMatches: matches.length,
+          hasNext: endIndex < matches.length,
+          hasPrev: startIndex > 0
+        },
+        statistics: {
+          averageScore: matches.length > 0 ? 
+            Math.round(matches.reduce((sum, match) => sum + match.score, 0) / matches.length) : 0,
+          topScore: matches.length > 0 ? Math.max(...matches.map(m => m.score)) : 0,
+          matchDistribution: getMatchDistribution(matches)
+        }
+      }
     });
 
-    res.status(201).json(match);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
+  } catch (error) {
+    console.error('❌ Error in matching route:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Erreur lors du calcul des correspondances'
+    });
   }
 });
 
-// GET /api/matches/me (talent → ses candidatures)
-router.get("/me", verifyToken, requireRoles("talent", "admin"), async (req, res) => {
+// GET /api/match/stats/:resumeId
+router.get('/stats/:resumeId', auth, async (req, res) => {
   try {
-    const items = await Match.find({ talentId: req.user.id }).populate("offerId");
-    res.json(items);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
+    const { resumeId } = req.params;
 
-// GET /api/matches/offer/:offerId (recruteur → candidatures d’une offre qu’il possède)
-router.get("/offer/:offerId", verifyToken, requireRoles("recruteur", "admin"), async (req, res) => {
-  try {
-    const offer = await Offer.findById(req.params.offerId);
-    if (!offer) return res.status(404).json({ error: "Offre introuvable" });
-    if (req.user.role !== "admin" && String(offer.recruiterId) !== req.user.id) {
-      return res.status(403).json({ error: "Accès interdit" });
-    }
-    const items = await Match.find({ offerId: offer._id }).populate("talentId", "-password");
-    res.json(items);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
-
-// PUT /api/matches/:id (recruteur met à jour statut)
-router.put("/:id", verifyToken, requireRoles("recruteur", "admin"), async (req, res) => {
-  try {
-    const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ error: "Introuvable" });
-
-    const offer = await Offer.findById(match.offerId);
-    if (!offer) return res.status(404).json({ error: "Offre introuvable" });
-
-    if (req.user.role !== "admin" && String(offer.recruiterId) !== req.user.id) {
-      return res.status(403).json({ error: "Accès interdit" });
+    if (!mongoose.Types.ObjectId.isValid(resumeId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de CV invalide'
+      });
     }
 
-    match.status = req.body.status ?? match.status;
-    await match.save();
-    res.json(match);
-  } catch {
-    res.status(500).json({ error: "Erreur serveur" });
+    const matches = await MatchingService.getMatches(resumeId, { limit: 1000 });
+    
+    const stats = {
+      totalOffers: matches.length,
+      averageMatchScore: matches.length > 0 ? 
+        Math.round(matches.reduce((sum, match) => sum + match.score, 0) / matches.length) : 0,
+      excellentMatches: matches.filter(m => m.score >= 90).length,
+      goodMatches: matches.filter(m => m.score >= 70 && m.score < 90).length,
+      fairMatches: matches.filter(m => m.score >= 50 && m.score < 70).length,
+      topSkills: extractTopSkills(matches),
+      topCompanies: extractTopCompanies(matches),
+      categories: extractCategories(matches)
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('❌ Error in stats route:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
   }
 });
+
+// Fonctions utilitaires
+function getMatchDistribution(matches) {
+  return {
+    excellent: matches.filter(m => m.score >= 90).length,
+    good: matches.filter(m => m.score >= 70 && m.score < 90).length,
+    fair: matches.filter(m => m.score >= 50 && m.score < 70).length,
+    poor: matches.filter(m => m.score < 50).length
+  };
+}
+
+function extractTopSkills(matches, limit = 5) {
+  const skillCount = {};
+  
+  matches.forEach(match => {
+    if (match.offer.skills) {
+      const skills = match.offer.skills.split(',').map(s => s.trim());
+      skills.forEach(skill => {
+        skillCount[skill] = (skillCount[skill] || 0) + 1;
+      });
+    }
+  });
+  
+  return Object.entries(skillCount)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, limit)
+    .map(([skill, count]) => ({ skill, count }));
+}
+
+function extractTopCompanies(matches, limit = 5) {
+  const companyCount = {};
+  
+  matches.forEach(match => {
+    if (match.offer.company) {
+      companyCount[match.offer.company] = (companyCount[match.offer.company] || 0) + 1;
+    }
+  });
+  
+  return Object.entries(companyCount)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, limit)
+    .map(([company, count]) => ({ company, count }));
+}
+
+function extractCategories(matches) {
+  const categoryCount = {};
+  
+  matches.forEach(match => {
+    if (match.offer.category) {
+      categoryCount[match.offer.category] = (categoryCount[match.offer.category] || 0) + 1;
+    }
+  });
+  
+  return categoryCount;
+}
 
 export default router;

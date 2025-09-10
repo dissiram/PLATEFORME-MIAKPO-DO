@@ -31,6 +31,7 @@ export default function CreateOffer() {
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
 
+  // Validation par étape
   const validateStep = () => {
     let newErrors = {};
     if (step === 1) {
@@ -47,6 +48,7 @@ export default function CreateOffer() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Gestion du formulaire
   const handleChange = (e) => {
     const { name, value, files } = e.target;
     if (files) {
@@ -101,7 +103,7 @@ export default function CreateOffer() {
               transition={{ duration: 0.5 }}
               className="text-green-600 font-semibold text-center mt-6 text-lg"
             >
-               Votre offre a été publiée avec succès ! Redirection...
+              Votre offre a été publiée avec succès ! Redirection...
             </motion.p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
