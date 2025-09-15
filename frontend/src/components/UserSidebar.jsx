@@ -41,7 +41,8 @@ const UserSidebar = ({ role }) => {
     ];
   } else if (role === "admin") {
     links = [
-      { name: "Gestion utilisateurs", path: "/dashboard/admin", icon: UsersIcon },
+     { name: "Tableau de bord", path: "/dashboard/admin", icon: ChartBarIcon },
+      { name: "Gestion utilisateurs", path: "/dashboard/admin/useradmin", icon: UsersIcon },
       { name: "Modération annonces", path: "/dashboard/admin/moderation", icon: ShieldCheckIcon },
       { name: "Statistiques", path: "/dashboard/admin/stats", icon: PresentationChartBarIcon },
     ];

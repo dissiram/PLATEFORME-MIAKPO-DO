@@ -16,7 +16,7 @@ const portfolioSchema = new mongoose.Schema({
     image: { type: String, default: "" },
   },
   blocks: [blockSchema],
-  public: { type: Boolean, default: false },
+  public: { type: Boolean, default: true },
 }, { timestamps: true });
 
 export default mongoose.model("Portfolio", portfolioSchema);

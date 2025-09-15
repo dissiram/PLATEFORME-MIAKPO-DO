@@ -2,6 +2,8 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { OfferProvider } from "./contexts/OfferContext";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Pages publiques
 import Home from "./pages/public/Home";
@@ -14,6 +16,7 @@ import PublicPortfolio from "./pages/public/PublicPortfolio";
 // Layouts
 import UserLayout from "./layout/UserLayout";
 import AnnouncerLayout from "./layout/AnnouncerLayout";
+import AdminLayout from "./layout/AdminLayout";
 
 // Pages utilisateurs
 import UserDashboard from "./pages/UserDashboard/UserDashboard";
@@ -29,12 +32,14 @@ import MyPortfolio from "./pages/UserDashboard/MyPortfolio";
 import AnnouncerDashboard from "./pages/AnnouncerDashboard/AnnouncerDashboard";
 import CreateOffer from "./pages/AnnouncerDashboard/CreateOffer";
 import MyOffers from "./pages/AnnouncerDashboard/MyOffers";
-import  RecruiterApplications from "./pages/AnnouncerDashboard/Candidatures";
-import EditOffer from "./pages/AnnouncerDashboard/EditOffer"; 
+import RecruiterApplications from "./pages/AnnouncerDashboard/Candidatures";
+import EditOffer from "./pages/AnnouncerDashboard/EditOffer";
 
-// Page admin
+// Pages admin
 import AdminDashboard from "./pages/AdminDashboard/AdminDashboard";
-// import ApplicantsCV from "./pages/AnnouncerDashboard/Candidatures";
+import UserManagement from './pages/AdminDashboard/UserManagement.jsx';
+import ContentModeration from './pages/AdminDashboard/ContentModeration.jsx';
+import ReportingSection from './pages/AdminDashboard/ReportingSection.jsx';
 
 // Route protégée
 const PrivateRoute = ({ children, role }) => {
@@ -57,11 +62,11 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/cv" element={<PublicCV />} />
           <Route path="*" element={<NotFound />} />
-          <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
+          <Route path="/public/resume/:userId" element={<PublicCV />} />
+          <Route path="/public/portfolio/:userId" element={<PublicPortfolio />} />
 
-          {/* Routes utilisateurs avec layout + sidebar */}
+          {/* Routes utilisateurs */}
           <Route
             path="/dashboard/user"
             element={
@@ -77,46 +82,56 @@ function App() {
             <Route path="candidatures" element={<UserCandidatures />} />
             <Route path="cv" element={<CVBuilder />} />
             <Route path="myCV" element={<MyCV />} />
-            <Route path="myPortfolio" element={<MyPortfolio/>} />
-
-
+            <Route path="myPortfolio" element={<MyPortfolio />} />
           </Route>
 
-        {/* Routes annonceurs avec layout + sidebar */}
-<Route
-  path="/dashboard/announcer"
-  element={
-    <PrivateRoute role="announcer">
-      <OfferProvider>
-        <AnnouncerLayout />
-      </OfferProvider>
-    </PrivateRoute>
-  }
->
-  <Route index element={<AnnouncerDashboard />} />
-  <Route path="create" element={<CreateOffer />} />
-  
-  {/* Liste des offres */}
-  <Route
-    path="offers"
-    element={<MyOffers />}
-  />
+          {/* Routes annonceurs */}
+          <Route
+            path="/dashboard/announcer"
+            element={
+              <PrivateRoute role="announcer">
+                <OfferProvider>
+                  <AnnouncerLayout />
+                </OfferProvider>
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<AnnouncerDashboard />} />
+            <Route path="create" element={<CreateOffer />} />
+            <Route path="offers" element={<MyOffers />} />
+            <Route path="offers/editOffer/:id" element={<EditOffer />} />
+            <Route path="candidatures" element={<RecruiterApplications />} />
+          </Route>
 
-  {/* Edition d'une offre : route dynamique avec l'ID */}
-  <Route
-    path="offers/editOffer/:id"
-    element={<EditOffer />}
-  />
-
-  {/* Candidatures reçues pour l'annonceur */}
-  <Route path="candidatures" element={<RecruiterApplications />} />
-</Route>
-
-
-          {/* Route admin */}
-          <Route path="/dashboard/admin" element={   <AdminDashboard />} />
-          
+          {/* Routes admin */}
+          <Route
+            path="/dashboard/admin"
+            element={
+              <PrivateRoute role="admin">
+                <AdminLayout />
+              </PrivateRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="useradmin" element={<UserManagement />} />
+            <Route path="moderation" element={<ContentModeration />} />
+            <Route path="stats" element={<ReportingSection />} />
+          </Route>
         </Routes>
+
+        {/* ToastContainer en dehors de Routes */}
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </Router>
     </AuthProvider>
   );

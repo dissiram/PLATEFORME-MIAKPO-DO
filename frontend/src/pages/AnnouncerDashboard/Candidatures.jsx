@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import ApplicationCard from "../../components/ApplicationCard"; 
+import { toast } from "react-toastify";
 
 const API_BASE_URL = "http://localhost:5000/api";
 
@@ -15,9 +16,10 @@ const RecruiterApplications = () => {
 
   const handleError = (err, defaultMessage) => {
     console.error(defaultMessage, err);
-    const message = err.response?.data?.message || defaultMessage;
+    const message = err.response?.data?.error || err.response?.data?.message || defaultMessage;
     setError(message);
     setTimeout(() => setError(null), 5000);
+    toast.error(message);
   };
 
   // Récupération des offres
@@ -61,8 +63,7 @@ const RecruiterApplications = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        const applicationsData = res.data.candidates || res.data || [];
-        setApplications(applicationsData);
+        setApplications(res.data || []);
         setExpandedCards({});
       } catch (err) {
         handleError(err, "Erreur lors du chargement des candidatures");
@@ -75,40 +76,46 @@ const RecruiterApplications = () => {
   );
 
   useEffect(() => {
-    fetchApplications(selectedOfferId);
+    if (selectedOfferId) {
+      fetchApplications(selectedOfferId);
+    }
   }, [selectedOfferId, fetchApplications]);
 
-  // Mise à jour du statut
+  // Mise à jour du statut - CORRIGÉE
   const updateStatus = useCallback(async (applicationId, status) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      
+      const response = await axios.put(
         `${API_BASE_URL}/applications/${applicationId}/status`,
+        { status },
         {
-          method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ status }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-
-      setApplications((prev) =>
-        prev.map((app) =>
-          app.applicationId === applicationId || app._id === applicationId
-            ? { ...app, status }
+      // Mise à jour optimiste de l'état local
+      setApplications(prev => 
+        prev.map(app => 
+          app._id === applicationId 
+            ? { ...app, status: status }
             : app
         )
       );
+
+      toast.success("Statut mis à jour avec succès");
+      
     } catch (err) {
       handleError(err, "Erreur lors de la mise à jour du statut");
+      // Recharger les données en cas d'erreur
+      if (selectedOfferId) {
+        fetchApplications(selectedOfferId);
+      }
     }
-  }, []);
+  }, [selectedOfferId, fetchApplications]);
 
   // Gestion expansion cartes
   const toggleCard = useCallback((id) => {
@@ -201,11 +208,11 @@ const RecruiterApplications = () => {
           <AnimatePresence>
             {applications.map((app, index) => (
               <ApplicationCard
-                key={app.applicationId || app._id}
+                key={app._id}
                 application={app}
                 index={index}
-                isExpanded={expandedCards[app.applicationId || app._id] || false}
-                onToggle={() => toggleCard(app.applicationId || app._id)}
+                isExpanded={expandedCards[app._id] || false}
+                onToggle={() => toggleCard(app._id)}
                 onStatusUpdate={updateStatus}
               />
             ))}

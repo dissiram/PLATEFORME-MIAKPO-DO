@@ -1,72 +1,105 @@
 import { motion } from "framer-motion";
 
 export default function Choisir() {
-  // Animation d'apparition pour chaque image
-  const imageVariants = {
-    hidden: { opacity: 0, y: 30 },
+  const textVariants = {
+    hidden: { opacity: 0, y: 20 },
     visible: (i) => ({
       opacity: 1,
       y: 0,
-      transition: { delay: i * 0.2, duration: 0.6, type: "spring", stiffness: 50 },
+      transition: { delay: i * 0.15, duration: 0.5, type: "spring", stiffness: 50 },
     }),
   };
 
-  const steps = [
-    { src: "./Ellipse1.svg", text: "Créer votre compte" },
-    { src: "./Ellipse2.svg", text: "Faire votre portfolio" },
-    { src: "./Ellipse3.svg", text: "Explorez et postulez" },
-    { src: "./Ellipse5.svg", text: "Décrocher votre opportunité" },
+  const candidatSteps = [
+    "Créer votre compte",
+    "Remplir vos informations",
+    "rechercher des opportunités",
+    "Postuler en un seul clic",
+  ];
+
+  const recruteurSteps = [
+    "Créer votre compte",
+    "Publier vos offres",
+    "Consulter les candidatures",
+    "Trouver le talent idéal",
   ];
 
   return (
-    <div className="min-h-screen relative mt-20">
-      {/* Background */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute -top-40 -right-32 w-96 h-96 bg-gradient-to-br from-blue-300 to-blue-900 rounded-full opacity-20 blur-3xl" />
-        <div className="absolute w-96 h-96 bg-gradient-to-tr from-sky-200 to-sky-900 rounded-full opacity-20 blur-3xl" />
-        <div className="absolute -bottom-20 right-40 w-96 h-96 bg-gradient-to-tr from-blue-200 to-teal-900 rounded-full opacity-20 blur-3xl" />
-        <div className="absolute -bottom-40 -left-32 w-96 h-96 bg-gradient-to-tr from-purple-300 to-blue-900/40 rounded-full opacity-20 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-blue-50 font-sans py-20">
+      <div className="max-w-6xl mx-auto px-4">
+        {/* Title */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="text-center mb-10"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-20">
+            Comment  <span className="text-white bg-blue-700 p-2 rounded-2xl">marche</span> MIAKPODO ?
+          </h2>
+        </motion.div>
 
-      <section className="pb-10 mx-20 rounded-2xl ">
-        <div className="container mx-auto sm:px-6 lg:px-8">
+        {/* 3 Columns responsive */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start lg:items-center">
+          {/* Colonne 1 - Candidat */}
+          <div className="flex flex-col gap-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Candidat</h3>
+            {candidatSteps.map((step, index) => (
+              <motion.div
+                key={index}
+                custom={index}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={textVariants}
+                className="flex items-center gap-3 bg-white px-4 py-4 rounded-2xl shadow-md"
+              >
+                <span className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold">
+                  {index + 1}
+                </span>
+                <p className="text-base md:text-lg font-medium text-gray-800">{step}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Colonne 2 - Image centrée verticalement */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="text-center mb-16 "
+            className="flex justify-center items-center"
           >
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-800 py-15">
-              Comment marche <span className="text-blue-700">MIAKPO DO</span> ?
-            </h2>
-
-            {/* Images responsives avec animation */}
-            <div className="flex flex-col md:flex-row justify-center items-center gap-8 mt-8">
-              {steps.map((step, index) => (
-                <motion.div
-                  key={index}
-                  custom={index}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  variants={imageVariants}
-                  whileHover={{ scale: 1.05, y: -10 }}
-                  transition={{ type: "spring", stiffness: 200 }}
-                  className="text-center cursor-pointer"
-                >
-                  <img
-                    src={step.src}
-                    alt={`illustration ${index + 1}`}
-                    className="w-80 md:w-96 lg:w-[28rem] object-contain"
-                  />
-                  <p className="font-bold mt-2">{step.text}</p>
-                </motion.div>
-              ))}
-            </div>
+            <img
+              src="./Group 36.svg"
+              alt="Illustration"
+              className="w-full max-w-sm md:max-w-md object-contain"
+            />
           </motion.div>
+
+          {/* Colonne 3 - Recruteur */}
+          <div className="flex flex-col gap-6">
+            <h3 className="text-xl font-semibold text-gray-800 mb-4 text-center">Recruteur</h3>
+            {recruteurSteps.map((step, index) => (
+              <motion.div
+                 key={index}
+                custom={index}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={textVariants}
+                className="flex items-center gap-3 bg-white px-4 py-4 rounded-2xl shadow-md"
+              >
+                <span className="w-8 h-8 flex items-center justify-center bg-blue-600 text-white rounded-full font-bold">
+                  {index + 1}
+                </span>
+                <p className="text-base md:text-lg font-medium text-gray-800">{step}</p>
+              </motion.div>
+            ))}
+          </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

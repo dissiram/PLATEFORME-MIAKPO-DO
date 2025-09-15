@@ -39,7 +39,7 @@ const languageSchema = new mongoose.Schema({
 });
 
 const resumeSchema = new mongoose.Schema({
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // lien avec l'utilisateur
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, 
   profileInfo: {
     fullName: String,
     designation: String,
@@ -56,7 +56,7 @@ const resumeSchema = new mongoose.Schema({
   certifications: [certificationSchema],
   languages: [languageSchema],
   interests: [String],
-  isPublic: { type: Boolean, default: false } // optionnel pour CV visibles publiquement
+  isPublic: { type: Boolean, default: true } 
 }, { timestamps: true });
 
 export default mongoose.model("Resume", resumeSchema);

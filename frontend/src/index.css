@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 .bgimg{
-background-image: url(../public/hero2.png);
+background-image: url(../public/Group\ 31.svg);
 background-repeat: no-repeat;
 background-size: cover;
 margin-top: 40px;
@@ -41,6 +41,16 @@ background-position: center;
 @keyframes slideIn {
   0% { transform: translateX(100%) translateY(0); opacity: 0; }
   100% { transform: translateX(0) translateY(0); opacity: 1; }
+}
+
+/* Masquer la scrollbar uniquement pour un conteneur */
+.hide-scrollbar {
+  -ms-overflow-style: none; 
+  scrollbar-width: none;     
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; 
 }
 
 .animate-slideIn {

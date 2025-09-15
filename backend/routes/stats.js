@@ -1,13 +1,13 @@
+// routes/stats.js
 import express from "express";
 import Offer from "../models/Offer.js";
 import Application from "../models/Application.js";
 import OfferClick from "../models/OfferClick.js";
-import Response from "../models/Response.js";
 import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// GET /api/stats
+// ----------------- Statistiques globales du recruteur -----------------
 router.get("/", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -29,20 +29,41 @@ router.get("/", verifyToken, async (req, res) => {
       offer: { $in: offerIds },
     });
 
-    // Compter les réponses données aux candidatures
-    const responsesCount = await Response.countDocuments({
-      offer: { $in: offerIds },
-    });
-
     res.json({
       offersCount,
       applicationsCount,
-      responsesCount,
       clicksCount,
     });
   } catch (err) {
-    console.error("Erreur récupération stats:", err);
+    console.error("Erreur récupération stats globales:", err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ----------------- Statistiques par catégorie -----------------
+router.get("/categories", async (_req, res) => {
+  try {
+    const stats = await Offer.aggregate([
+      {
+        $group: {
+          _id: "$category", // Regroupe par champ "category"
+          count: { $sum: 1 }, // Compte le nombre d'offres par catégorie
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          category: "$_id",
+          count: 1,
+        },
+      },
+      { $sort: { count: -1 } }, // Trie par nombre décroissant
+    ]);
+
+    res.json(stats);
+  } catch (err) {
+    console.error("Erreur récupération stats catégories:", err);
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 

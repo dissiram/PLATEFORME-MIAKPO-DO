@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
+import axios from "axios";
 
 const profileColors = [
   "bg-indigo-500", "bg-pink-500", "bg-green-500", "bg-yellow-500",
@@ -13,28 +14,45 @@ const statusOptions = [
   { value: "Refusée", label: "Refusée", color: "bg-red-100 text-red-800" }
 ];
 
-const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, onStatusUpdate }) => {
-  const applicationId = application.applicationId || application._id;
-  const applicant = application.applicant || application;
-  const resumeData = application.resume || applicant?.resume;
-  const portfolioData = application.portfolio || applicant?.portfolio;
+const ApplicationCard = ({ application, index, isExpanded, onToggle, onStatusUpdate }) => {
+  const [resumeData, setResumeData] = useState(null);
+  const [portfolioData, setPortfolioData] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const fullName = resumeData?.profileInfo?.fullName || applicant?.username || "Candidat";
-  const profileImage = applicant?.portfolio?.profileImage;
-  const profileImageUrl = profileImage || null;
-
-  const hasResume = applicant?.resume || resumeData?.fileUrl;
-  const resumeUrl = applicant?.resume || resumeData?.fileUrl || null;
-
-  const hasPortfolio = portfolioData || applicant?.portfolio;
-  const portfolioUrl = applicant?._id || application.userId;
-
-  const email = resumeData?.contactInfo?.email || applicant?.email || "Non renseigné";
-  const phone = resumeData?.contactInfo?.phone || "Non renseigné";
-  const designation = resumeData?.profileInfo?.designation || "Poste non spécifié";
+  const applicant = application.applicant || {};
+  const applicantId = applicant._id || application.applicant; 
+  const fullName = applicant.fullName || applicant.username || "Candidat";
+  const email = applicant.email || "Non renseigné";
+  const phone = applicant.contactInfo?.phone || "Non renseigné";
+  const profileImageUrl = applicant.profileImage || null;
+  const designation = applicant.designation || "Poste non spécifié";
 
   const colorClass = profileColors[index % profileColors.length];
   const currentStatus = statusOptions.find(opt => opt.value === (application.status || "En attente"));
+
+  useEffect(() => {
+    if (isExpanded && applicantId) {
+      const fetchCandidateData = async () => {
+        setLoading(true);
+        try {
+          const [resumeRes, portfolioRes] = await Promise.all([
+            axios.get(`/api/resumes/public/user/${applicantId}`),
+            axios.get(`/api/portfolios/public/user/${applicantId}`)
+          ]);
+
+          setResumeData(resumeRes.data || null);
+          setPortfolioData(portfolioRes.data || null);
+        } catch (err) {
+          console.error("Erreur chargement données candidat:", err);
+          setResumeData(null);
+          setPortfolioData(null);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchCandidateData();
+    }
+  }, [isExpanded, applicantId]);
 
   return (
     <motion.div
@@ -43,18 +61,13 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.3 }}
-      className={`bg-white rounded-xl shadow-md hover:shadow-lg transition p-6 flex flex-col gap-4 border border-gray-100 ${isExpanded ? 'shadow-xl bg-gray-50' : ''}`}
+      className={`bg-white rounded-xl shadow-md p-6 flex flex-col gap-4 border border-gray-100 ${isExpanded ? 'bg-gray-50' : ''}`}
     >
-      {/* En-tête */}
+      {/* Header */}
       <div className="flex items-center gap-4">
         <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg ${colorClass}`}>
           {profileImageUrl ? (
-            <img
-              src={profileImageUrl}
-              alt={fullName}
-              className="w-full h-full rounded-full object-cover"
-              onError={(e) => { e.target.src = "/avatar.png"; }}
-            />
+            <img src={profileImageUrl} alt={fullName} className="w-full h-full rounded-full object-cover" />
           ) : (
             <span>{fullName.charAt(0).toUpperCase()}</span>
           )}
@@ -66,13 +79,8 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
             {currentStatus.label}
           </div>
         </div>
-        <button
-          onClick={onToggle}
-          className="text-indigo-600 font-semibold flex items-center gap-1 whitespace-nowrap"
-          aria-label={isExpanded ? 'Réduire les détails' : 'Voir les détails'}
-        >
-          {isExpanded ? 'Voir moins' : 'Voir plus'}
-          <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>&#9660;</span>
+        <button onClick={onToggle} className="text-indigo-600 font-semibold flex items-center gap-1">
+          {isExpanded ? 'Voir moins' : 'Voir plus'} <span className={`transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}>&#9660;</span>
         </button>
       </div>
 
@@ -86,6 +94,8 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
             transition={{ duration: 0.2 }}
             className="flex flex-col gap-4 mt-3"
           >
+            {loading && <div className="text-center py-4 text-gray-500">Chargement des données...</div>}
+
             {/* Infos contact */}
             <div className="bg-gray-50 rounded-lg p-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -95,45 +105,37 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
                 </div>
                 <div>
                   <span className="text-gray-500 block mb-1">Téléphone:</span>
-                  <a href={`tel:${phone}`} className="text-gray-900">{phone}</a>
+                  <span className="text-gray-900">{phone}</span>
                 </div>
               </div>
             </div>
 
-            {/* Compétences */}
-            {resumeData?.skills && resumeData.skills.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Compétences principales:</p>
-                <div className="flex flex-wrap gap-1">
-                  {resumeData.skills.slice(0, 5).map((skill, idx) => (
-                    <span key={idx} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded text-xs">{skill.name || skill}</span>
-                  ))}
-                  {resumeData.skills.length > 5 && (
-                    <span className="text-xs text-gray-500 px-2 py-1">+{resumeData.skills.length - 5} autres</span>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Boutons actions */}
             <div className="flex flex-wrap gap-3 mt-2">
-              {hasResume && resumeUrl && (
-                <a 
-                  href={resumeUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
-                  className="flex-1 text-center bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition shadow flex items-center justify-center gap-2"
+              {resumeData ? (
+                <Link
+                  to={`/public/resume/${applicantId}`}
+                  className="flex-1 text-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition shadow flex items-center justify-center gap-2"
                 >
                   Voir CV
-                </a>
+                </Link>
+              ) : (
+                <button disabled className="flex-1 text-center bg-gray-200 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
+                  CV non disponible ou privé
+                </button>
               )}
-              {hasPortfolio && portfolioUrl && (
+
+              {applicantId ? (
                 <Link
-                  to={`/portfolio/${portfolioUrl}`}
+                  to={`/public/portfolio/${applicantId}`}
                   className="flex-1 text-center bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition shadow flex items-center justify-center gap-2"
                 >
                   Portfolio
                 </Link>
+              ) : (
+                <button disabled className="flex-1 text-center bg-gray-200 text-gray-500 px-4 py-2 rounded-lg cursor-not-allowed">
+                  ID utilisateur manquant
+                </button>
               )}
             </div>
 
@@ -142,7 +144,7 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
               <label className="block text-sm font-medium text-gray-700 mb-1">Modifier le statut:</label>
               <select
                 value={application.status || "En attente"}
-                onChange={(e) => onStatusUpdate(applicationId, e.target.value)}
+                onChange={(e) => onStatusUpdate(application._id, e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
               >
                 {statusOptions.map(option => (
@@ -155,9 +157,7 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
             {application.appliedAt && (
               <div className="text-xs text-gray-500 border-t border-gray-100 pt-2 text-right">
                 Candidature du {new Date(application.appliedAt).toLocaleDateString('fr-FR', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+                  year: 'numeric', month: 'long', day: 'numeric'
                 })}
               </div>
             )}
@@ -166,8 +166,6 @@ const ApplicationCard = React.memo(({ application, index, isExpanded, onToggle, 
       </AnimatePresence>
     </motion.div>
   );
-});
-
-ApplicationCard.displayName = 'ApplicationCard';
+};
 
 export default ApplicationCard;

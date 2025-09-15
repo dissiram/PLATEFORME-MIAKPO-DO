@@ -1,8 +1,7 @@
-import mongoose from "mongoose";
-
+// models/OfferClick.js
 const OfferClickSchema = new mongoose.Schema(
   {
-    offerId: {
+    offer: {  
       type: mongoose.Schema.Types.ObjectId,
       ref: "Offer",
       required: true,
@@ -15,5 +14,3 @@ const OfferClickSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
-export default mongoose.model("OfferClick", OfferClickSchema);
