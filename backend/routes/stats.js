@@ -2,7 +2,6 @@
 import express from "express";
 import Offer from "../models/Offer.js";
 import Application from "../models/Application.js";
-import OfferClick from "../models/OfferClick.js";
 import { verifyToken } from "../middlewares/auth.js";
 
 const router = express.Router();
@@ -24,11 +23,7 @@ router.get("/", verifyToken, async (req, res) => {
       offer: { $in: offerIds },
     });
 
-    // Compter les clics sur les annonces
-    const clicksCount = await OfferClick.countDocuments({
-      offer: { $in: offerIds },
-    });
-
+  
     res.json({
       offersCount,
       applicationsCount,

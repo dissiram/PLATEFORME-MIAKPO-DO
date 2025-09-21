@@ -1,68 +1,76 @@
 import express from "express";
+import mongoose from "mongoose";
 import Application from "../models/Application.js";
-import { verifyToken } from "../middlewares/auth.js";
 import Offer from "../models/Offer.js";
-
+import { verifyToken } from "../middlewares/auth.js";
+import Resume from "../models/Resume.js";
 const router = express.Router();
 
-
-// Postuler à une offre
+// ----------------- POST : postuler à une offre -----------------
 router.post("/:offerId/apply", verifyToken, async (req, res) => {
   try {
     const { offerId } = req.params;
     const userId = req.user.id;
 
+    // Vérifier que l'offre existe
+    if (!mongoose.Types.ObjectId.isValid(offerId)) {
+      return res.status(400).json({ message: "ID d'offre invalide" });
+    }
     const offer = await Offer.findById(offerId);
     if (!offer) return res.status(404).json({ message: "Offre non trouvée" });
 
-    const existingApplication = await Application.findOne({ offer: offerId, applicant: userId });
-    if (existingApplication) {
-      return res.status(400).json({ message: "Vous avez déjà postulé à cette offre" });
-    }
+    // Vérifier si l'utilisateur a déjà postulé
+    const existing = await Application.findOne({ offer: offerId, applicant: userId });
+    if (existing) return res.status(400).json({ message: "Vous avez déjà postulé à cette offre" });
 
-    const application = new Application({ 
-      offer: offerId, 
+    const application = new Application({
+      offer: offerId,
       applicant: userId,
-      status: "En attente"
+      status: "En attente",
     });
-    await application.save();
 
+    await application.save();
     res.status(201).json({ message: "Candidature envoyée avec succès", application });
+
   } catch (error) {
     console.error("Erreur lors de la candidature:", error);
     res.status(500).json({ message: "Erreur serveur lors de la candidature" });
   }
 });
 
-// Récupérer toutes les candidatures pour les offres du recruteur
+// ----------------- GET : candidatures pour les offres du recruteur -----------------
 router.get("/my-applications", verifyToken, async (req, res) => {
   try {
-    const { offerId, status } = req.query;
-    const recruiterOffers = await Offer.find({ recruiterId: req.user.id });
-    const offerIds = recruiterOffers.map((offer) => offer._id);
+    const recruiterId = req.user.id;
 
-    let filter = { offer: { $in: offerIds } };
-    if (offerId) {
-      if (!offerIds.includes(offerId)) {
-        return res.status(403).json({ error: "Accès non autorisé à cette offre" });
-      }
-      filter.offer = offerId;
-    }
-    if (status) filter.status = status;
-
-    const applications = await Application.find(filter)
-      .populate("offer", "title company location contractType createdAt")
-      .populate("applicant", "firstName lastName email phone resume")
+    const applications = await Application.find()
+      .populate({
+        path: "offer",
+        match: { recruiterId },
+        select: "title company location contractType createdAt",
+      })
+      .populate({
+        path: "applicant",
+        select: "username email resume",
+        populate: {
+          path: "resume",
+          select: "profileInfo.fullName contactInfo.email"
+        }
+      })
       .sort({ createdAt: -1 });
 
-    res.json(applications);
+    const filteredApplications = applications.filter(app => app.offer);
+
+    res.json(filteredApplications);
   } catch (error) {
-    console.error("Erreur lors de la récupération des candidatures:", error);
+    console.error(error);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// Historique des candidatures d’un candidat
+
+
+// ----------------- GET : historique des candidatures du candidat -----------------
 router.get("/my-history", verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -75,81 +83,19 @@ router.get("/my-history", verifyToken, async (req, res) => {
       .populate({
         path: "offer",
         select: "title company location contractType salary deadline recruiterId",
-        populate: { path: "recruiterId", select: "companyName" }
+        populate: { path: "recruiterId", select: "companyName" },
       })
       .sort({ createdAt: -1 });
 
     res.json(applications);
-  } catch (error) {
-    console.error("Erreur lors de la récupération de l'historique:", error);
+
+  } catch (err) {
+    console.error("Erreur historique candidatures:", err);
     res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
-// 3 dernières candidatures reçues par le recruteur
-router.get("/recent-applications", verifyToken, async (req, res) => {
-  try {
-    const recruiterOffers = await Offer.find({ recruiterId: req.user.id });
-    const offerIds = recruiterOffers.map((offer) => offer._id);
-
-    const recentApplications = await Application.find({ offer: { $in: offerIds } })
-      .populate("offer", "title company")
-      .populate("applicant", "firstName lastName email")
-      .sort({ createdAt: -1 })
-      .limit(3);
-
-    res.json(recentApplications);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des candidatures récentes:", error);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
-
-
-
-// Détails d’une candidature
-router.get("/:applicationId", verifyToken, async (req, res) => {
-  try {
-    const { applicationId } = req.params;
-
- 
-    const application = await Application.findById(applicationId)
-      .populate("offer", "title company location contractType description requirements salary deadline recruiterId")
-      .populate("applicant", "firstName lastName email phone resume coverLetter");
-
-    if (!application) return res.status(404).json({ error: "Candidature non trouvée" });
-
-    const isApplicant = application.applicant._id.toString() === req.user.id;
-    const isRecruiter = application.offer.recruiterId.toString() === req.user.id;
-    if (!isApplicant && !isRecruiter) {
-      return res.status(403).json({ error: "Accès non autorisé à cette candidature" });
-    }
-
-    res.json(application);
-  } catch (error) {
-    console.error("Erreur lors de la récupération de la candidature:", error);
-    res.status(500).json({ error: "Erreur serveur" });
-  }
-});
-
-router.get("/recruiter/:recruiterId", verifyToken, async (req, res) => {
-  try {
-    // Vérifier rôle recruteur ou admin
-    if (req.user.role !== "recruteur" && req.user.role !== "admin") {
-      return res.status(403).json({ error: "Accès non autorisé" });
-    }
-
-    const applications = await Application.find({ offer: req.query.offerId }) // filtre si besoin
-      .populate("applicant", "fullName username email profileImage contactInfo") // <- important
-      .exec();
-
-    res.json(applications);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Mettre à jour le statut d’une candidature
+// ----------------- PUT : mettre à jour le statut d'une candidature -----------------
 router.put("/:applicationId/status", verifyToken, async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -163,6 +109,7 @@ router.put("/:applicationId/status", verifyToken, async (req, res) => {
     const application = await Application.findById(applicationId).populate("offer");
     if (!application) return res.status(404).json({ error: "Candidature non trouvée" });
 
+    // Vérifier que le recruteur est bien propriétaire de l'offre
     if (application.offer.recruiterId.toString() !== req.user.id) {
       return res.status(403).json({ error: "Non autorisé - Vous n'êtes pas le recruteur de cette offre" });
     }
@@ -172,13 +119,14 @@ router.put("/:applicationId/status", verifyToken, async (req, res) => {
     await application.save();
 
     res.json({ message: "Statut mis à jour avec succès", application });
-  } catch (error) {
-    console.error("Erreur lors de la mise à jour du statut:", error);
+
+  } catch (err) {
+    console.error("Erreur mise à jour statut:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
-// Supprimer une candidature
+// ----------------- DELETE : supprimer une candidature -----------------
 router.delete("/:applicationId", verifyToken, async (req, res) => {
   try {
     const { applicationId } = req.params;
@@ -197,11 +145,11 @@ router.delete("/:applicationId", verifyToken, async (req, res) => {
 
     await Application.findByIdAndDelete(applicationId);
     res.json({ message: "Candidature retirée avec succès" });
-  } catch (error) {
-    console.error("Erreur lors de la suppression de la candidature:", error);
+
+  } catch (err) {
+    console.error("Erreur suppression candidature:", err);
     res.status(500).json({ error: "Erreur serveur" });
   }
 });
-
 
 export default router;

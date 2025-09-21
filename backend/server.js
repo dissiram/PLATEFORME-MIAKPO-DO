@@ -13,7 +13,6 @@ import portfolioRoutes from "./routes/portfolios.js";
 import resumeRoutes from "./routes/resume.js";
 import applicationRoutes from "./routes/application.js";
 import statsRoutes from "./routes/stats.js";
-import publicProfileRoutes from "./routes/publicProfile.js";
 import adminRoutes from './routes/admin.js';
 
 const app = express();
@@ -39,7 +38,6 @@ app.use("/api/portfolios", portfolioRoutes);
 app.use("/api/resumes", resumeRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/stats", statsRoutes);
-app.use("/api/users/public", publicProfileRoutes);
 app.get("/health", (_req, res) => res.json({ ok: true }));
 app.use('/api/admin', adminRoutes);
 

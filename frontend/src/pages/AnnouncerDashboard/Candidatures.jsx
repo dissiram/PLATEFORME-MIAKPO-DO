@@ -18,117 +18,87 @@ const RecruiterApplications = () => {
     console.error(defaultMessage, err);
     const message = err.response?.data?.error || err.response?.data?.message || defaultMessage;
     setError(message);
-    setTimeout(() => setError(null), 5000);
     toast.error(message);
+    setTimeout(() => setError(null), 5000);
   };
 
   // Récupération des offres
   const fetchOffers = useCallback(async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        setError("Token d'authentification manquant");
-        return;
-      }
+      if (!token) throw new Error("Token manquant");
 
       const res = await axios.get(`${API_BASE_URL}/offers/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       setOffers(res.data || []);
     } catch (err) {
       handleError(err, "Erreur lors du chargement des offres");
     }
   }, []);
 
+  // Récupération de toutes les candidatures pour les offres du recruteur
+  const fetchApplications = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Token manquant");
+
+      const res = await axios.get(`${API_BASE_URL}/applications/my-applications`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setApplications(res.data || []);
+      setExpandedCards({});
+    } catch (err) {
+      handleError(err, "Erreur lors du chargement des candidatures");
+      setApplications([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchOffers();
-  }, [fetchOffers]);
+    fetchApplications();
+  }, [fetchOffers, fetchApplications]);
 
-  // Récupération des candidatures
-  const fetchApplications = useCallback(
-    async (offerId) => {
-      if (!offerId) {
-        setApplications([]);
-        return;
-      }
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        const token = localStorage.getItem("token");
-        const res = await axios.get(
-          `${API_BASE_URL}/applications/my-applications?offerId=${offerId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        setApplications(res.data || []);
-        setExpandedCards({});
-      } catch (err) {
-        handleError(err, "Erreur lors du chargement des candidatures");
-        setApplications([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    if (selectedOfferId) {
-      fetchApplications(selectedOfferId);
-    }
-  }, [selectedOfferId, fetchApplications]);
-
-  // Mise à jour du statut - CORRIGÉE
+  // Mise à jour du statut
   const updateStatus = useCallback(async (applicationId, status) => {
     try {
       const token = localStorage.getItem("token");
-      
-      const response = await axios.put(
+      if (!token) throw new Error("Token manquant");
+
+      await axios.put(
         `${API_BASE_URL}/applications/${applicationId}/status`,
         { status },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
       );
 
-      // Mise à jour optimiste de l'état local
       setApplications(prev => 
-        prev.map(app => 
-          app._id === applicationId 
-            ? { ...app, status: status }
-            : app
-        )
+        prev.map(app => app._id === applicationId ? { ...app, status } : app)
       );
-
       toast.success("Statut mis à jour avec succès");
-      
     } catch (err) {
       handleError(err, "Erreur lors de la mise à jour du statut");
-      // Recharger les données en cas d'erreur
-      if (selectedOfferId) {
-        fetchApplications(selectedOfferId);
-      }
+      fetchApplications();
     }
-  }, [selectedOfferId, fetchApplications]);
+  }, [fetchApplications]);
 
-  // Gestion expansion cartes
-  const toggleCard = useCallback((id) => {
-    setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  // Expansion des cartes
+  const toggleCard = useCallback(id => {
+    setExpandedCards(prev => ({ ...prev, [id]: !prev[id] }));
   }, []);
 
-  const selectedOffer = offers.find((offer) => offer._id === selectedOfferId);
+  const selectedOffer = offers.find(o => o._id === selectedOfferId);
+  const displayedApplications = selectedOfferId
+    ? applications.filter(app => app.offer._id === selectedOfferId)
+    : applications;
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
-        Candidatures reçues
-      </h1>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">Candidatures reçues</h1>
 
       {/* Sélecteur d'offres */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8 border border-gray-100">
@@ -136,27 +106,24 @@ const RecruiterApplications = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           <select
             value={selectedOfferId}
-            onChange={(e) => setSelectedOfferId(e.target.value)}
+            onChange={e => setSelectedOfferId(e.target.value)}
             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            aria-label="Sélectionner une offre d'emploi"
           >
-            <option value="">-- Choisir une offre --</option>
-            {offers.map((offer) => (
+            <option value="">-- Toutes les offres --</option>
+            {offers.map(offer => (
               <option key={offer._id} value={offer._id}>
                 {offer.title} - {offer.company} ({offer.location})
               </option>
             ))}
           </select>
 
-          {selectedOfferId && (
-            <button
-              onClick={() => fetchApplications(selectedOfferId)}
-              className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow flex items-center gap-2"
-              disabled={loading}
-            >
-              {loading ? "Chargement..." : "Actualiser"}
-            </button>
-          )}
+          <button
+            onClick={fetchApplications}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow"
+            disabled={loading}
+          >
+            {loading ? "Chargement..." : "Actualiser"}
+          </button>
         </div>
       </div>
 
@@ -174,9 +141,9 @@ const RecruiterApplications = () => {
             </span>
           </div>
           <div className="mt-4 text-right">
-            <span className="text-2xl font-bold text-indigo-600">{applications.length}</span>
+            <span className="text-2xl font-bold text-indigo-600">{displayedApplications.length}</span>
             <span className="text-gray-500 ml-2">
-              candidature{applications.length !== 1 ? "s" : ""}
+              candidature{displayedApplications.length !== 1 ? "s" : ""}
             </span>
           </div>
         </div>
@@ -189,24 +156,20 @@ const RecruiterApplications = () => {
         </div>
       )}
 
-      {/* États de chargement et contenu */}
-      {!selectedOfferId ? (
-        <div className="bg-white rounded-xl shadow p-12 text-center text-gray-500">
-          <p>Sélectionnez une offre pour voir les candidatures.</p>
-        </div>
-      ) : loading ? (
+      {/* Contenu */}
+      {loading ? (
         <div className="bg-white rounded-xl shadow p-12 text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement des candidatures...</p>
         </div>
-      ) : applications.length === 0 ? (
+      ) : displayedApplications.length === 0 ? (
         <div className="bg-white rounded-xl shadow p-12 text-center text-gray-500">
           <p>Aucun candidat n'a encore postulé.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <AnimatePresence>
-            {applications.map((app, index) => (
+            {displayedApplications.map((app, index) => (
               <ApplicationCard
                 key={app._id}
                 application={app}
