@@ -1,55 +1,79 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 
 const profileColors = [
-  "bg-indigo-500", "bg-pink-500", "bg-green-500", "bg-yellow-500",
-  "bg-purple-500", "bg-red-500", "bg-blue-500", "bg-teal-500"
+  "bg-gradient-to-br from-indigo-500 to-purple-600",
+  "bg-gradient-to-br from-pink-500 to-rose-600",
+  "bg-gradient-to-br from-green-500 to-emerald-600",
+  "bg-gradient-to-br from-yellow-500 to-amber-600",
+  "bg-gradient-to-br from-purple-500 to-violet-600",
+  "bg-gradient-to-br from-red-500 to-orange-600",
+  "bg-gradient-to-br from-blue-500 to-cyan-600",
+  "bg-gradient-to-br from-teal-500 to-blue-600"
 ];
 
 const statusOptions = [
-  { value: "En attente", label: "En attente", color: "bg-yellow-100 text-yellow-800" },
-  { value: "Acceptée", label: "Acceptée", color: "bg-green-100 text-green-800" },
-  { value: "Refusée", label: "Refusée", color: "bg-red-100 text-red-800" }
+  { value: "En attente", label: "En attente", color: "bg-yellow-100 text-yellow-800 border-yellow-200" },
+  { value: "Acceptée", label: "Acceptée", color: "bg-green-100 text-green-800 border-green-200" },
+  { value: "Refusée", label: "Refusée", color: "bg-red-100 text-red-800 border-red-200" }
 ];
 
-const ApplicationCard = ({ application, index, isExpanded, onToggle, onStatusUpdate }) => {
-  
-const applicant = application.applicant || {};
-const resume = applicant.resume || {};
+const ApplicationCard = ({ application, index, isExpanded, onToggle }) => {
+  const applicant = application.applicant || {};
+  const applicantId = applicant._id;
+  const email = applicant.email || "Non renseigné";
+  const userImage = applicant.image;
+  const resumeData = applicant.publicResume;
 
-const fullName = resume?.profileInfo?.fullName || applicant.username || "Candidat";
-const email = resume?.contactInfo?.email || applicant.email || "Non renseigné";
-
- 
+  const [displayName, setDisplayName] = useState("Candidat");
+  const [imageError, setImageError] = useState(false);
 
   const colorClass = profileColors[index % profileColors.length];
   const currentStatus = statusOptions.find(opt => opt.value === (application.status || "En attente"));
 
+  useEffect(() => {
+    let name = "Candidat";
+    if (applicant.username) name = applicant.username;
+    else if (resumeData?.profileInfo?.fullName) name = resumeData.profileInfo.fullName;
+    else if (email !== "Non renseigné") name = email.split("@")[0];
+    setDisplayName(name);
+  }, [applicant.username, resumeData, email]);
+
+  const getInitial = () => displayName.charAt(0).toUpperCase();
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString("fr-FR", {
+    year: "numeric", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
+
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      transition={{ duration: 0.3 }}
-      className={`bg-white rounded-xl shadow-md p-6 flex flex-col gap-4 border border-gray-100 ${isExpanded ? "bg-gray-50" : ""}`}
+      initial={{ opacity: 0, y: 20, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -20, scale: 0.95 }}
+      transition={{ duration: 0.3, type: "spring", stiffness: 300 }}
+      className={`bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden ${isExpanded ? "ring-2 ring-indigo-100" : "hover:border-gray-200"}`}
     >
       {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg ${colorClass}`}>
-          <span>{fullName.charAt(0).toUpperCase()}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-gray-900 text-lg truncate">{fullName}</p>
-          <p className="text-gray-500 text-sm truncate">{email}</p>
-          <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mt-1 ${currentStatus.color}`}>
-            {currentStatus.label}
+      <div className={`p-6 cursor-pointer ${isExpanded ? "bg-gray-50 pb-4" : "hover:bg-gray-50"}`} onClick={onToggle}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-lg ${colorClass}`}>
+              {userImage && !imageError
+                ? <img src={userImage} alt={displayName} className="w-full h-full rounded-2xl object-cover" onError={() => setImageError(true)} />
+                : <span className="text-white font-semibold">{getInitial()}</span>}
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-lg">{displayName}</p>
+              <p className="text-gray-600 text-sm">{application.offer?.title || "Poste non spécifié"}</p>
+            </div>
           </div>
+
+          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${currentStatus.color}`}>
+            {currentStatus.label}
+          </span>
         </div>
-        <button onClick={onToggle} className="text-indigo-600 font-semibold flex items-center gap-1">
-          {isExpanded ? "Voir moins" : "Voir plus"}{" "}
-          <span className={`transform transition-transform ${isExpanded ? "rotate-180" : ""}`}>&#9660;</span>
-        </button>
       </div>
 
       {/* Contenu dépliable */}
@@ -59,42 +83,39 @@ const email = resume?.contactInfo?.email || applicant.email || "Non renseigné";
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col gap-4 mt-3"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="border-t border-gray-100 p-6 space-y-4"
           >
-            {/* Contact */}
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
-              <span className="text-gray-500 block mb-1">Email:</span>
-              <a href={`mailto:${email}`} className="text-indigo-600 hover:text-indigo-800 truncate block">
-                {email}
-              </a>
+            {/* Email centré */}
+            <div className="text-center text-sm text-gray-700">
+              <span className="font-medium">Email : </span>
+              <a href={`mailto:${email}`} className="text-blue-600 hover:underline">{email}</a>
             </div>
 
-            {/* Sélecteur de statut */}
-            <div className="mt-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Modifier le statut:</label>
-              <select
-                value={application.status || "En attente"}
-                onChange={(e) => onStatusUpdate(application._id, e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+            {/* Boutons sur une ligne */}
+            <div className="flex gap-3">
+              <Link
+                to={`/public/resume/${resumeData?.owner || applicantId}`}
+                className={`flex-1 text-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  resumeData
+                    ? "bg-blue-100 text-blue-700 hover:bg-blue-200"
+                    : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                }`}
               >
-                {statusOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                Voir CV
+              </Link>
+              <Link
+                to={`/public/portfolio/${applicant.portfolio || applicantId}`}
+                className="flex-1 text-center px-4 py-2 rounded-md text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition-all"
+              >
+                Voir Portfolio
+              </Link>
             </div>
 
-            {/* Date de candidature */}
+            {/* Timestamp */}
             {application.appliedAt && (
-              <div className="text-xs text-gray-500 border-t border-gray-100 pt-2 text-right">
-                Candidature du{" "}
-                {new Date(application.appliedAt).toLocaleDateString("fr-FR", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+              <div className="text-center pt-4 border-t border-gray-100 text-gray-400 text-sm">
+                Candidature reçue le {formatDate(application.appliedAt)}
               </div>
             )}
           </motion.div>

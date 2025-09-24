@@ -39,27 +39,49 @@ router.post("/:offerId/apply", verifyToken, async (req, res) => {
 });
 
 // ----------------- GET : candidatures pour les offres du recruteur -----------------
+// router.get("/my-applications", verifyToken, async (req, res) => {
+//   try {
+//     const recruiterId = req.user.id;
+
+//     const applications = await Application.find()
+//       .populate({
+//         path: "offer",
+//         match: { recruiterId },
+//         select: "title company location contractType createdAt",
+//       })
+//       .populate({
+//         path: "applicant",
+//         select: "username email",
+//       })
+//       .sort({ createdAt: -1 });
+
+//     const filteredApplications = applications.filter(app => app.offer);
+
+//     res.json(filteredApplications);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: "Erreur serveur" });
+//   }
+// });
+
 router.get("/my-applications", verifyToken, async (req, res) => {
   try {
     const recruiterId = req.user.id;
 
     const applications = await Application.find()
-      .populate({
-        path: "offer",
-        match: { recruiterId },
-        select: "title company location contractType createdAt",
-      })
+      .populate("offer", "title company location contractType recruiterId")
       .populate({
         path: "applicant",
-        select: "username email resume",
+        select: "username email image portfolio",
         populate: {
-          path: "resume",
-          select: "profileInfo.fullName contactInfo.email"
+          path: "publicResume" // récupère directement le CV public
         }
       })
       .sort({ createdAt: -1 });
 
-    const filteredApplications = applications.filter(app => app.offer);
+    const filteredApplications = applications.filter(
+      (app) => app.offer?.recruiterId.toString() === recruiterId
+    );
 
     res.json(filteredApplications);
   } catch (error) {

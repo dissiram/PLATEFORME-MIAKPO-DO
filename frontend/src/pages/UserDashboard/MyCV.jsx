@@ -1,59 +1,50 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { useCV } from "../../contexts/CVContext";
 import CVPreview from "../../components/cv/CvPreview";
+import { PencilIcon } from "@heroicons/react/24/outline";
 
 const MyCV = () => {
-  const [resume, setResume] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { cv, loading } = useCV();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchCV = async () => {
-      const token = localStorage.getItem("token");
+  if (loading) return <p>Chargement...</p>;
 
-      if (!token) {
-        setError("Vous n'êtes pas connecté.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const res = await axios.get("http://localhost:5000/api/resumes/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setResume(res.data);
-      } catch (err) {
-        console.error("Erreur récupération CV:", err.response || err);
-        if (err.response) {
-          setError(err.response.data.error || "Erreur serveur");
-        } else {
-          setError("Erreur réseau");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCV();
-  }, []);
-
-  if (loading) return <p>Chargement du CV...</p>;
-  if (error) return <p style={{ color: "red" }}>{error}</p>;
-  if (!resume) return <p>Aucun CV trouvé.</p>;
-
-  return (
-    <div>
-      <div className="flex justify-end mb-4">
+  if (!cv) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <h2 className="text-2xl font-semibold mb-4">Aucun CV trouvé</h2>
+        <p className="text-gray-600 mb-4">Vous n’avez pas encore créé de CV.</p>
         <button
           onClick={() => navigate("/dashboard/user/cv")}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Modifier le CV
+          Créer mon CV
         </button>
       </div>
-      <CVPreview resume={resume} />
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto p-6 flex flex-col gap-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Mon CV</h1>
+        <button
+          onClick={() => navigate("/dashboard/user/cv")}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          <PencilIcon className="h-5 w-5 mr-2" />
+          Modifier
+        </button>
+      </div>
+
+      <div className="bg-white p-6 rounded-xl shadow">
+        <CVPreview resume={cv} />
+      </div>
+
+      <p className="text-sm text-gray-500 text-right">
+        Dernière mise à jour : {new Date(cv.updatedAt).toLocaleDateString("fr-FR")}
+      </p>
     </div>
   );
 };

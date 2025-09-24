@@ -8,7 +8,7 @@ const blockSchema = new mongoose.Schema({
 });
 
 const portfolioSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // ✅ lien avec utilisateur
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, 
   title: { type: String, required: true },
   profile: {
     name: { type: String, default: "" },

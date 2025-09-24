@@ -1,66 +1,73 @@
+// routes/resume.js
 import express from "express";
 import Resume from "../models/Resume.js";
-import { verifyToken } from "../middlewares/auth.js";
+import verifyToken from "../middleware/verifyToken.js";
 
 const router = express.Router();
 
-// Créer ou mettre à jour un CV pour l'utilisateur connecté
+// 🔹 Créer ou mettre à jour le CV
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const existing = await Resume.findOne({ owner: req.user.id });
+    const data = req.body;
+    let resume = await Resume.findOne({ owner: req.user.id });
 
-    if (existing) {
-      Object.assign(existing, req.body);
-      await existing.save();
-      return res.json(existing);
+    if (resume) {
+      // Modifier le CV existant
+      resume = await Resume.findByIdAndUpdate(resume._id, data, { new: true, runValidators: true });
+    } else {
+      // Créer un nouveau CV
+      resume = new Resume({ ...data, owner: req.user.id });
+      await resume.save();
     }
 
-    const resume = new Resume({
-      ...req.body,
-      owner: req.user.id,
-    });
-    await resume.save();
-    res.status(201).json(resume);
+    res.json(resume);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Erreur lors de la sauvegarde du CV." });
   }
 });
 
-// Récupérer le CV PUBLIC ou accessible pour le recruteur/admin ou le candidat
-// Récupérer le CV PUBLIC d'un utilisateur par son ID (accessible à tous)
-router.get("/public/user/:userId", async (req, res) => {
+// 🔹 Supprimer le CV
+router.delete("/me", verifyToken, async (req, res) => {
   try {
-    const resume = await Resume.findOne({ 
-      owner: req.params.userId,
-      isPublic: true 
-    });
+    await Resume.findOneAndDelete({ owner: req.user.id });
+    res.json({ message: "CV supprimé avec succès" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Erreur lors de la suppression du CV." });
+  }
+});
+
+// Récupérer le CV privé du propriétaire
+router.get("/me", verifyToken, async (req, res) => {
+  try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ message: "Utilisateur non identifié" });
+    }
+
+    const resume = await Resume.findOne({ owner: req.user.id });
 
     if (!resume) {
-      return res.status(404).json({ error: "CV non trouvé ou non public" });
+      return res.status(200).json(null); // ⚡ renvoie null si aucun CV
     }
 
     res.json(resume);
   } catch (err) {
-    res.status(500).json({ error: "Erreur serveur" });
+    console.error("Erreur serveur /me :", err);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 
 
-// Récupérer le CV par ID (privé ou admin)
-router.get("/:id", verifyToken, async (req, res) => {
+// 🔹 Récupérer un CV public par ID
+router.get("/public/:id", async (req, res) => {
   try {
     const resume = await Resume.findById(req.params.id);
-    if (!resume) return res.status(404).json({ error: "CV introuvable" });
-
-    if (!resume.isPublic &&
-        resume.owner.toString() !== req.user.id &&
-        req.user.role !== "admin") {
-      return res.status(403).json({ error: "Non autorisé" });
-    }
-
+    if (!resume || !resume.isPublic) return res.status(404).json({ message: "CV non trouvé ou privé" });
     res.json(resume);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error(err);
+    res.status(500).json({ message: "Erreur serveur" });
   }
 });
 

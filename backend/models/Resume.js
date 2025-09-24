@@ -15,40 +15,15 @@ const educationSchema = new mongoose.Schema({
   endDate: String
 });
 
-const skillSchema = new mongoose.Schema({
-  name: String,
-  progress: Number
-});
-
-const projectSchema = new mongoose.Schema({
-  title: String,
-  description: String,
-  github: String,
-  liveDemo: String
-});
-
-const certificationSchema = new mongoose.Schema({
-  title: String,
-  issuer: String,
-  year: String
-});
-
-const languageSchema = new mongoose.Schema({
-  name: String,
-  progress: Number
-});
+const skillSchema = new mongoose.Schema({ name: String, progress: Number });
+const projectSchema = new mongoose.Schema({ title: String, description: String, github: String, liveDemo: String });
+const certificationSchema = new mongoose.Schema({ title: String, issuer: String, year: String });
+const languageSchema = new mongoose.Schema({ name: String, progress: Number });
 
 const resumeSchema = new mongoose.Schema({
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, 
-  profileInfo: {
-    fullName: String,
-    designation: String,
-    summary: String
-  },
-  contactInfo: {
-    email: String,
-    phone: String
-  },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  profileInfo: { fullName: String, designation: String, summary: String },
+  contactInfo: { email: String, phone: String },
   workExperience: [experienceSchema],
   education: [educationSchema],
   skills: [skillSchema],
@@ -56,7 +31,7 @@ const resumeSchema = new mongoose.Schema({
   certifications: [certificationSchema],
   languages: [languageSchema],
   interests: [String],
-  isPublic: { type: Boolean, default: true } 
+  isPublic: { type: Boolean, default: true }
 }, { timestamps: true });
 
 export default mongoose.model("Resume", resumeSchema);
